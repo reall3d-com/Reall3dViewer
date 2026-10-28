@@ -64,8 +64,8 @@
 |-----------|--------------------------------|-------------|
 | `maxRenderCountOfMobile` | 2 million | Max rendered points on mobile, adjustable per device |
 | `maxRenderCountOfPc` | 3 million | Max rendered points on PC |
-| `qualityLevel` | auto | Quality level (1–9), affects rendering precision & performance |
-| `sortType` | auto | Sorting algorithm type, choose different strategy per scene |
+| `qualityLevel` | default 5 (usually) | Quality level (1–9), affects rendering precision & performance |
+| `sortType` | default 1 (z-depth) | Sorting algorithm type, choose different strategy per scene |
 
 
 ## 📦 SPX High‑Compression Format
