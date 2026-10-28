@@ -68,6 +68,11 @@ export class Events {
         this.map.delete(key);
     }
 
+    public replace(key: number | string, fn: Function = null): void {
+        this.off(key);
+        this.on(key, fn);
+    }
+
     public clear(): void {
         this.map.clear();
     }

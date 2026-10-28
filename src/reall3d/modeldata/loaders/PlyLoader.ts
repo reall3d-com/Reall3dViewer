@@ -2,8 +2,8 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Vector3 } from 'three';
-import { clipUint8, encodeSplatSH } from '../../utils/CommonUtils';
-import { DataSize32, MaxProcessCnt, SH_C0, SpxBlockFormatSH1, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/consts/GlobalConstants';
+import { clipUint8, encodeSplatSH, isPointCloudPly } from '../../utils/CommonUtils';
+import { isMobile, MaxProcessCnt, SH_C0, SpxBlockFormatSH1, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSplatToTexdata, parseSpxBlockData } from '../wasm/WasmParser';
 
@@ -138,7 +138,7 @@ export async function loadPly(model: SplatModel) {
     }
 
     async function parsePlyToTexdata(header: any, value: Uint8Array, cntSplat: number): Promise<Uint8Array> {
-        const splatData = new Uint8Array(cntSplat * DataSize32);
+        const splatData = new Uint8Array(cntSplat * 32);
         const f32sValue = new Float32Array(value.buffer);
         const f32sData = new Float32Array(splatData.buffer);
 

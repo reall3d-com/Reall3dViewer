@@ -31,13 +31,16 @@ import {
     OnViewerDispose,
     IsPlayerMode,
 } from '../events/EventConstants';
-import { CameraControls } from './CameraControls';
 import { MetaData } from '../modeldata/MetaData';
 import { ScenesJsonData } from '../mapviewer/Reall3dMapViewer';
-import { addDynamicStyles } from '../utils/CommonUtils';
+import { addDynamicStyles, showSpeedText } from '../utils/CommonUtils';
 import nipplejs from 'nipplejs';
+import { CameraControls } from './SetupCameraControls';
+import { globalEv } from '../events/GlobalEV';
+import { isMobile } from '../utils/GlobalConstants';
 
 export function setupFlying(events: Events) {
+    const tryFire = (key: number, ...args: any): any => events.tryFire(key, ...args);
     const fire = (key: number, ...args: any): any => events.fire(key, ...args);
     const on = (key: number, fn?: Function, multiFn?: boolean): Function | Function[] => events.on(key, fn, multiFn);
 
@@ -87,7 +90,7 @@ export function setupFlying(events: Events) {
         flyTargets.length = 0;
     });
     on(FlySavePositions, async (bSave: boolean = true) => {
-        const obj: MetaData | ScenesJsonData = fire(GetSplatMesh)?.meta || fire(GetMeta);
+        const obj: MetaData = fire(GetMeta);
         if ((obj as any).scenes) {
             // 地图
             const meta = obj as ScenesJsonData;
@@ -111,7 +114,7 @@ export function setupFlying(events: Events) {
 
             bSave && (await fire(HttpPostMetaData, meta));
         } else {
-            // 小场景
+            // 非地图场景
             const meta = obj as MetaData;
             if (flyPositions.length) {
                 const positions: number[] = [];
@@ -128,7 +131,7 @@ export function setupFlying(events: Events) {
             }
             bSave && (await fire(HttpPostMetaData, meta));
         }
-        const meta = (obj as any).scenes ? (obj as ScenesJsonData) : (obj as MetaData);
+        const meta = obj as MetaData;
         if (flyPositions.length) {
             const positions: number[] = [];
             const targets: number[] = [];
@@ -191,7 +194,7 @@ export function setupFlying(events: Events) {
         curveTgt.closed = false;
 
         fire(FlyEnable);
-        fire(StopAutoRotate, false);
+        tryFire(StopAutoRotate, false);
     });
 
     on(FlyingPause, () => {
@@ -224,6 +227,8 @@ export function setupFlying(events: Events) {
             flySpeed = 1;
         }
 
+        showSpeedText(flySpeed + ' X');
+
         return flySpeed;
     });
 
@@ -244,8 +249,12 @@ export function setupFlying(events: Events) {
             const pt = curvePos.getPoint(t);
             const tgt = curveTgt.getPoint(t);
 
+            const enableDamping = controls.enableDamping;
+            controls.enableDamping = false;
             controls.object.position.set(pt.x, pt.y, pt.z);
             controls.target.set(tgt.x, tgt.y, tgt.z);
+            controls.update();
+            controls.enableDamping = enableDamping;
         },
         true,
     );
@@ -263,6 +272,18 @@ export function setupFlying(events: Events) {
         document.body.appendChild(dom);
 
         initJoystick();
+    });
+
+    globalEv.replace('OnImageShow', () => {
+        const meta: MetaData = fire(GetMeta);
+        const enableJoystick = isMobile ? meta.mobileEnableJoystick : meta.pcEnableJoystick;
+        enableJoystick && fire(ShowJoystick, false);
+    });
+
+    globalEv.replace('OnImageHidden', () => {
+        const meta: MetaData = fire(GetMeta);
+        const enableJoystick = isMobile ? meta.mobileEnableJoystick : meta.pcEnableJoystick;
+        enableJoystick && fire(ShowJoystick, true);
     });
 
     on(
@@ -297,7 +318,7 @@ export function setupFlying(events: Events) {
                 !stopMove && fire(MovePlayerByAngle, angleRadian);
             },
             () => fire(IsPlayerMode),
-            6,
+            15,
         );
 
         let lastManagerTime = performance.now();

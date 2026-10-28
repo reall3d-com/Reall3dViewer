@@ -2,7 +2,7 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Vector3 } from 'three';
-import { MaxProcessCnt } from '../../utils/consts/GlobalConstants';
+import { isMobile, MaxProcessCnt } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSplatToTexdata } from '../wasm/WasmParser';
 

@@ -1,8 +1,8 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import '../style/style.less';
-import { Scene, AmbientLight, WebGLRenderer, Color, Matrix4, Camera, Mesh, MeshStandardMaterial, DirectionalLight } from 'three';
+import '../assets/style/style.less';
+import { Scene, AmbientLight, WebGLRenderer, Color, Matrix4, Camera, DirectionalLight, Mesh, MeshStandardMaterial } from 'three';
 import { DRACOLoader, GLTFLoader } from 'three/examples/jsm/Addons.js';
 import {
     GetCurrentDisplayShDegree,
@@ -78,24 +78,27 @@ import {
     RenderCSS2D3D,
     RenderMinimap,
     LoadCircularAudioMask,
+    RunLoopByFrame,
+    PlaytBgAudio,
     OnLoadAndRenderPointCloudPly,
+    SetViewerApi,
 } from '../events/EventConstants';
 import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
 import { ModelOptions } from '../modeldata/ModelOptions';
 import { Events } from '../events/Events';
 import { copyGsViewerOptions, initCamera, initGsViewerOptions, initRenderer } from '../utils/ViewerUtils';
-import { CameraControls } from '../controls/CameraControls';
 import { Reall3dViewerOptions } from './Reall3dViewerOptions';
 import { SplatMeshOptions } from '../meshs/splatmesh/SplatMeshOptions';
 import { MarkData } from '../meshs/mark/data/MarkData';
 import { computeCompressionRatio, getUrl, glbKhrGs2Splat, isPointCloudPly, isString, parseRgbPly } from '../utils/CommonUtils';
-import { DecoderPath, isMobile, QualityLevels, SortTypes, ViewerVersion } from '../utils/consts/GlobalConstants';
+import { DecoderPath, isMobile, QualityLevels, SortTypes, ViewerVersion } from '../utils/GlobalConstants';
 import { MetaData } from '../modeldata/MetaData';
 import { globalEv } from '../events/GlobalEV';
 import { setupPlayer } from '../scene/SetupPlayer';
 import { loadFile } from '../modeldata/loaders/FileLoader';
 import { MinimapOptions } from '../scene/SetupMinimap';
 import { setupAllEventsVerwer } from '../scene/SetupAllEvents';
+import { CameraControls } from '../scene/SetupCameraControls';
 
 /**
  * Built-in Gaussian Splatting model viewer
@@ -161,7 +164,7 @@ export class Reall3dViewer {
             fire(
                 RunLoopByTime,
                 () => {
-                    !that.disposed && (that.needUpdate = true);
+                    that.needUpdate = true;
                     oUpdater.count++ >= 600 && (oUpdater.stop = true);
                 },
                 () => !that.disposed && (fire(IsControlPlaneVisible) || !oUpdater.stop),
@@ -221,12 +224,13 @@ export class Reall3dViewer {
         });
         on(OnViewerBeforeUpdate, () => fire(KeyActionCheckAndExecute), true);
         on(OnViewerBeforeUpdate, () => fire(ViewerCheckNeedUpdate), true);
-        on(CheckViewerUpdateRow, () => that.needUpdate && performance.now() - renterTime >= (isMobile ? 25 : opts.qualityLevel > 5 ? 1 : 18));
+        // on(OnViewerBeforeUpdate, () => Date.now() - lastTimeNeedUpdate < 5000 && (that.needUpdate = true), true);
+        on(CheckViewerUpdateRow, () => that.needUpdate && Date.now() - renterTime >= (isMobile ? 20 : opts.qualityLevel > 5 ? 1 : 18));
 
         on(
             OnViewerUpdate,
             () => {
-                !(that.needUpdate = false) && (renterTime = performance.now()) && fire(IsDebugMode) && fire(CountFpsReal);
+                !(that.needUpdate = false) && (renterTime = Date.now()) && fire(IsDebugMode) && fire(CountFpsReal);
                 if (!fire(IsDefaultPipeline)) return;
 
                 renderer.render(scene, camera);
@@ -247,11 +251,12 @@ export class Reall3dViewer {
         on(GetCachedWaterMark, () => watermark);
         fire(Information, { scale: `1 : ${fire(GetOptions).meterScale} m` });
 
-        that.initGsApi();
+        // that.initGsApi();
+        fire(SetViewerApi);
     }
 
     /**
-     * 允许拖拽本地文件进行渲染
+     * 允许拖拽本地文件进行渲染（支持模型文件、*.meta.json文件、*.scene.json文件）
      */
     private enableDropLocalFile(): void {
         const that = this;
@@ -285,6 +290,8 @@ export class Reall3dViewer {
             } else if (file.name.endsWith('.glb')) {
                 format = 'glb';
                 globalEv.on('Information-ver', () => `glb`);
+            } else if (file.name.endsWith('.meta.json')) {
+                // 不得而知，待后续进一步检查
             } else {
                 return console.error('unsupported format:', file.name);
             }
@@ -294,8 +301,7 @@ export class Reall3dViewer {
             opts.bigSceneMode = false;
             opts.debugMode = true;
             opts.autoRotate = false; // 本地拖拽大多是要看质量，默认不旋转
-            opts.maxRenderCountOfPc = 10240 * 10000;
-            opts.qualityLevel = 9; // 主要目的为确认模型质量，按最高级别设置
+            opts.qualityLevel = QualityLevels.Default5; // 兼顾性能使用默认级别
             opts.disableTransitionEffectOnLoad = true; // 不要渐进过渡特效
             opts.pointcloudMode = false;
             opts.maxDistance = 10000;
@@ -333,7 +339,7 @@ export class Reall3dViewer {
         n === 2 && that.events.fire(AddFlyPosition);
         n === 3 && that.events.fire(Flying, true);
         n === 4 && that.events.fire(ClearFlyPosition);
-        n === 5 && that.events.fire(FlySavePositions);
+        n === 5 && that.events.fire(FlySavePositions, true);
         n === 6 && that.events.fire(MetaMarkSaveData);
         n === 7 && that.events.fire(MetaMarkRemoveData);
         if (n === 8) {
@@ -355,7 +361,7 @@ export class Reall3dViewer {
             if (!p1) {
                 that.events.fire(UpdateSortType, SortTypes.Default1);
             } else {
-                const types = [1, 2010, 2011, 2012, 2112];
+                const types = that.events.fire(IsBigSceneMode) ? [1, 2] : [1, 2, 2010, 2011];
                 const sortType: number = (that.events.fire(GetOptions) as Reall3dViewerOptions).sortType;
                 let idx = types.indexOf(sortType) + p1;
                 idx = Math.max(0, Math.min(idx, types.length - 1));
@@ -386,8 +392,6 @@ export class Reall3dViewer {
             opts.pointcloudMode !== undefined && fire(SplatSetPointcloudMode, opts.pointcloudMode);
             opts.lightFactor !== undefined && fire(SplatUpdateLightFactor, opts.lightFactor);
 
-            opts.maxRenderCountOfMobile && (viewOpts.maxRenderCountOfMobile = opts.maxRenderCountOfMobile);
-            opts.maxRenderCountOfPc && (viewOpts.maxRenderCountOfPc = opts.maxRenderCountOfPc);
             opts.debugMode !== undefined && (viewOpts.debugMode = opts.debugMode);
             opts.qualityLevel !== undefined &&
                 (viewOpts.qualityLevel = opts.qualityLevel) &&
@@ -464,27 +468,37 @@ export class Reall3dViewer {
             return console.error('scene file fetch failed', e.message);
         }
 
-        if (!meta.url) return console.error('missing model file url');
-        if (!meta.url.endsWith('.spx') && !meta.url.endsWith('.json')) return console.error('The format is unsupported in the large scene mode', meta.url);
+        if (!meta.url) return console.error('missing lod meta url');
+        if (!meta.url.endsWith('.json')) return console.error('The format is unsupported in the large scene mode', meta.url);
+        meta.disableTransitionEffectOnLoad && that.options({ disableTransitionEffectOnLoad: true, pointcloudMode: false });
+        meta.disableTransitionEffectOnLoad && that.splatMesh.options({ pointcloudMode: false } as any);
 
         // 重置
         const orgOpts: Reall3dViewerOptions = fire(GetOptions);
         const opts: Reall3dViewerOptions = { root: orgOpts.root, ...meta, ...(meta.cameraInfo || {}) };
-        opts.bigSceneMode = meta.url.endsWith('.json') || !!meta.isLargeScene;
-        opts.enableEnvironment = meta.enableEnvironment === undefined ? (fire(GetOptions) as Reall3dViewerOptions).enableEnvironment : !!meta.enableEnvironment;
-        opts.enableEnvironment && !meta.qualityLevel && (opts.qualityLevel = QualityLevels.L9);
+        opts.bigSceneMode = true;
+        opts.qualityLevel = meta.qualityLevel || QualityLevels.Default5;
         opts.viewMode = meta.viewMode;
+        meta.background && (opts.background = meta.background);
         that.reset({ ...opts });
 
-        meta.player?.url && (meta.player.url = getUrl(meta.player.url, getUrl(sceneUrl, location.href)));
-        meta.player?.trigerRunMp3 && (meta.player.trigerRunMp3 = getUrl(meta.player.trigerRunMp3, getUrl(sceneUrl, location.href)));
-        meta.collisionUrl && (meta.collisionUrl = getUrl(meta.collisionUrl, getUrl(sceneUrl, location.href)));
-        meta.minimap && (meta.minimap.url = getUrl(meta.minimap.url, getUrl(sceneUrl, location.href)));
-        meta.audioMask && (meta.audioMask.audioUrl = getUrl(meta.audioMask.audioUrl, getUrl(sceneUrl, location.href)));
+        const baseUrl = getUrl(sceneUrl, location.href);
+
+        meta.player?.url && (meta.player.url = getUrl(meta.player.url, baseUrl));
+        meta.player?.trigerRunMp3 && (meta.player.trigerRunMp3 = getUrl(meta.player.trigerRunMp3, baseUrl));
+        meta.collisionUrl && (meta.collisionUrl = getUrl(meta.collisionUrl, baseUrl));
+        meta.minimap && (meta.minimap.url = getUrl(meta.minimap.url, baseUrl));
+        meta.audioMask && (meta.audioMask.audioUrl = getUrl(meta.audioMask.audioUrl, baseUrl));
         meta.audioMask?.audioUrl && fire(LoadCircularAudioMask, meta.audioMask);
+        meta.url = getUrl(meta.url, baseUrl);
+        meta.bgAudio && (meta.bgAudio = getUrl(meta.bgAudio, getUrl(sceneUrl, location.href)));
+        meta.audio?.mp3 && (meta.audio.mp3 = getUrl(meta.audio.mp3, getUrl(sceneUrl, location.href)));
+
         on(GetMeta, () => meta);
         fire(OnMetaDataLoaded);
         setupPlayer(that.events);
+
+        meta.bgAudio && globalEv.fire(PlaytBgAudio, meta.bgAudio, true);
 
         that.metaMatrix = meta.transform ? new Matrix4().fromArray(meta.transform) : null;
 
@@ -492,17 +506,13 @@ export class Reall3dViewer {
         that.splatMesh.meta = meta;
         isMobile && (meta.cameraInfo?.position || meta.cameraInfo?.lookAt) && that.events.fire(GetControls)._dollyOut(0.7); // 手机适当缩小
 
-        if (opts.bigSceneMode) {
-            fire(OnSetFlyPositions, meta.flyPositions || []);
-            fire(OnSetFlyTargets, meta.flyTargets || []);
-            fire(OnSetFlyDuration, meta.flyDuration);
-            fire(OnInitMarks, meta);
-        } else {
-            fire(LoadSmallSceneMetaData, meta);
-        }
+        fire(OnSetFlyPositions, meta.flyPositions || []);
+        fire(OnSetFlyTargets, meta.flyTargets || []);
+        fire(OnSetFlyDuration, meta.flyDuration);
+        fire(OnInitMarks, meta);
 
         // 加载模型
-        that.splatMesh.addModel({ url: meta.url, baseUrl: getUrl(sceneUrl, location.href) }, meta);
+        that.splatMesh.addModel({ url: meta.url, baseUrl }, meta);
         await fire(OnSetWaterMark, meta.watermark || meta.name);
         fire(GetControls).updateRotateAxis();
 
@@ -516,18 +526,23 @@ export class Reall3dViewer {
     public async addModel(urlOpts: string | ModelOptions): Promise<void> {
         const that = this;
         if (that.disposed) return;
-        const on = (key: number, fn?: Function, multiFn?: boolean): Function | Function[] => this.events.on(key, fn, multiFn);
+        const on = (key: number | string, fn?: Function, multiFn?: boolean): Function | Function[] => this.events.on(key, fn, multiFn);
         const fire = (key: number, ...args: any): any => that.events.fire(key, ...args);
 
         // 参数整理
+        let isMetaUrl = false;
         let metaUrl = '';
         let modelOpts: ModelOptions = { url: '' };
         if (isString(urlOpts)) {
             if ((urlOpts as string).endsWith('.meta.json')) {
                 metaUrl = urlOpts as string;
+                isMetaUrl = true;
             } else {
                 modelOpts.url = urlOpts as string;
             }
+        } else if (!(urlOpts as ModelOptions).format) {
+            metaUrl = (urlOpts as ModelOptions).url;
+            isMetaUrl = true;
         } else {
             modelOpts = urlOpts as ModelOptions;
         }
@@ -553,10 +568,12 @@ export class Reall3dViewer {
 
         // 检查整理
         meta.showWatermark = !!meta.showWatermark; // 是否显示水印文字
+        meta.disableTransitionEffectOnLoad && that.options({ disableTransitionEffectOnLoad: true, pointcloudMode: false });
+        meta.disableTransitionEffectOnLoad && that.splatMesh.options({ pointcloudMode: false } as any);
+
         meta.url = meta.url || modelOpts.url;
-        delete meta.isLargeScene; // addModel为固定小场景模式
         if (!modelOpts.format) {
-            modelOpts.url = modelOpts.url || meta.url;
+            modelOpts.url = isMetaUrl ? meta.url : modelOpts.url;
             const urlfile = modelOpts.url.split('?')[0];
             if (urlfile.endsWith('.spx')) {
                 modelOpts.format = 'spx';
@@ -586,16 +603,21 @@ export class Reall3dViewer {
         meta.audioMask?.audioUrl && fire(LoadCircularAudioMask, meta.audioMask);
         meta.disableTransitionEffectOnLoad && that.options({ disableTransitionEffectOnLoad: true, pointcloudMode: false });
         meta.disableTransitionEffectOnLoad && that.splatMesh.options({ pointcloudMode: false } as any);
+        meta.bgAudio && (meta.bgAudio = getUrl(meta.bgAudio, getUrl(metaUrl, location.href)));
+        meta.audio?.mp3 && (meta.audio.mp3 = getUrl(meta.audio.mp3, getUrl(metaUrl, location.href)));
 
         on(GetMeta, () => meta);
         fire(OnMetaDataLoaded);
         setupPlayer(that.events);
+        fire(OnSetFlyDuration, meta.flyDuration);
+
+        meta.bgAudio && globalEv.fire(PlaytBgAudio, meta.bgAudio, true);
 
         that.metaMatrix = meta.transform ? new Matrix4().fromArray(meta.transform) : null;
 
         // 按元数据调整更新相机、标注等信息
         fire(LoadSmallSceneMetaData, meta);
-        this.options({ qualityLevel: meta.qualityLevel, sortType: meta.sortType }); // 允许根据具体模型特点在meta中定义渲染质量级别，均衡质量性能资源
+        this.options({ qualityLevel: meta.qualityLevel, sortType: meta.sortType, background: meta.background }); // 允许根据具体模型特点在meta中定义渲染质量级别，均衡质量性能资源
 
         // 加载模型
         if (modelOpts.format === 'glb') {
@@ -645,7 +667,10 @@ export class Reall3dViewer {
                     .subarray(buffersOffset, buffersOffset + oJson.buffers[0].byteLength)
                     .subarray(oJson.bufferViews[0].byteOffset || 0, oJson.bufferViews[0].byteLength);
 
-                const { count, plyBytes, xyzs } = await parseRgbPly(dataBytes);
+                const { count, plyBytes, xyzs, minY, maxY } = await parseRgbPly(dataBytes);
+                on('GetRgbPlyXyzs', () => xyzs);
+                on('GetRgbPlyMinY', () => minY);
+                on('GetRgbPlyMaxY', () => maxY);
                 const urlBlob = URL.createObjectURL(new Blob([plyBytes as Uint8Array<ArrayBuffer>], { type: 'application/octet-stream' }));
                 modelOpts.format = 'ply';
 
@@ -717,89 +742,85 @@ export class Reall3dViewer {
         );
     }
 
-    /**
-     * 根据需要暴露的接口
-     */
-    private initGsApi() {
-        const that = this;
-        const fire = (key: number, ...args: any): any => this.events.fire(key, ...args);
-
-        const switchAutoRotate = () => {
-            setTimeout(() => window.focus());
-            fire(FlyDisable);
-            fire(GetControls).autoRotate = fire(GetOptions).autoRotate = !fire(GetOptions).autoRotate;
-        };
-        const changePointCloudMode = (pointcloudMode: boolean = true) => {
-            setTimeout(() => window.focus());
-            pointcloudMode = !!pointcloudMode;
-            const opts: Reall3dViewerOptions = fire(GetOptions);
-            if (opts.pointcloudMode === pointcloudMode) return;
-            opts.bigSceneMode ? fire(SplatSetPointcloudMode, pointcloudMode) : fire(SplatSwitchDisplayMode);
-        };
-        const showMark = (visible: boolean = true) => {
-            setTimeout(() => window.focus());
-            fire(MarkUpdateVisible, !!visible);
-        };
-        const startMark = (markType: number): boolean => {
-            setTimeout(() => window.focus());
-            const opts: Reall3dViewerOptions = fire(GetOptions);
-            if (opts.markMode) return false;
-
-            if (markType === 1) {
-                opts.markType = 'point';
-            } else if (markType === 2) {
-                opts.markType = 'lines';
-            } else if (markType === 3) {
-                opts.markType = 'plans';
-            } else if (markType === 4) {
-                opts.markType = 'distance';
-            } else {
-                return false;
-            }
-
-            opts.markMode = true;
-            fire(StopAutoRotate);
-            return true;
-        };
-        const deleteMark = async (name: string): Promise<boolean> => {
-            setTimeout(() => window.focus());
-            if (!name) return false;
-            fire(GetMarkFromWeakRef, name)?.dispose();
-            fire(ViewerNeedUpdate);
-            return await fire(MetaMarkSaveData);
-        };
-        const updateMark = async (data: MarkData, saveData: boolean = true): Promise<boolean> => {
-            fire(UpdateAllMarkByMeterScale, data, saveData);
-            fire(GetMarkFromWeakRef, data?.name)?.drawUpdate?.(data, saveData);
-            fire(ViewerNeedUpdate);
-            if (saveData) {
-                setTimeout(() => window.focus());
-                return await fire(MetaMarkSaveData);
-            }
-            return true;
-        };
-        const showWaterMark = (visible: boolean = true) => {
-            setTimeout(() => window.focus());
-            that.splatMesh.fire(SplatUpdateShowWaterMark, !!visible);
-        };
-        const setWaterMark = (text: string, save: boolean = true) => {
-            fire(OnSetWaterMark, text);
-            save && fire(MetaSaveWatermark, text);
-        };
-
-        const captureScreenshot = () => fire(CaptureScreenshot);
-        window['$api'] = {
-            captureScreenshot,
-            switchAutoRotate,
-            changePointCloudMode,
-            showMark,
-            startMark,
-            deleteMark,
-            updateMark,
-            showWaterMark,
-            setWaterMark,
-        };
-    }
+    // /**
+    //  * 根据需要暴露的接口
+    //  */
+    // private initGsApi() {
+    //     const that = this;
+    //     const fire = (key: number, ...args: any): any => this.events.fire(key, ...args);
+    //     const switchAutoRotate = () => {
+    //         setTimeout(() => window.focus());
+    //         fire(FlyDisable);
+    //         fire(GetControls).autoRotate = fire(GetOptions).autoRotate = !fire(GetOptions).autoRotate;
+    //     };
+    //     const changePointCloudMode = (pointcloudMode: boolean = true) => {
+    //         setTimeout(() => window.focus());
+    //         pointcloudMode = !!pointcloudMode;
+    //         const opts: Reall3dViewerOptions = fire(GetOptions);
+    //         if (opts.pointcloudMode === pointcloudMode) return;
+    //         opts.bigSceneMode ? fire(SplatSetPointcloudMode, pointcloudMode) : fire(SplatSwitchDisplayMode);
+    //     };
+    //     const showMark = (visible: boolean = true) => {
+    //         setTimeout(() => window.focus());
+    //         fire(MarkUpdateVisible, !!visible);
+    //     };
+    //     const startMark = (markType: number): boolean => {
+    //         setTimeout(() => window.focus());
+    //         const opts: Reall3dViewerOptions = fire(GetOptions);
+    //         if (opts.markMode) return false;
+    //         if (markType === 1) {
+    //             opts.markType = 'point';
+    //         } else if (markType === 2) {
+    //             opts.markType = 'lines';
+    //         } else if (markType === 3) {
+    //             opts.markType = 'plans';
+    //         } else if (markType === 4) {
+    //             opts.markType = 'distance';
+    //         } else {
+    //             return false;
+    //         }
+    //         opts.markMode = true;
+    //         fire(StopAutoRotate);
+    //         return true;
+    //     };
+    //     const deleteMark = async (name: string): Promise<boolean> => {
+    //         setTimeout(() => window.focus());
+    //         if (!name) return false;
+    //         fire(GetMarkFromWeakRef, name)?.dispose();
+    //         fire(ViewerNeedUpdate);
+    //         return await fire(MetaMarkSaveData);
+    //     };
+    //     const updateMark = async (data: MarkData, saveData: boolean = true): Promise<boolean> => {
+    //         fire(UpdateAllMarkByMeterScale, data, saveData);
+    //         fire(GetMarkFromWeakRef, data?.name)?.drawUpdate?.(data, saveData);
+    //         fire(ViewerNeedUpdate);
+    //         if (saveData) {
+    //             setTimeout(() => window.focus());
+    //             return await fire(MetaMarkSaveData);
+    //         }
+    //         return true;
+    //     };
+    //     const showWaterMark = (visible: boolean = true) => {
+    //         setTimeout(() => window.focus());
+    //         that.splatMesh.fire(SplatUpdateShowWaterMark, !!visible);
+    //     };
+    //     const setWaterMark = (text: string, save: boolean = true) => {
+    //         fire(OnSetWaterMark, text);
+    //         save && fire(MetaSaveWatermark, text);
+    //     };
+    //     const captureScreenshot = () => fire(CaptureScreenshot);
+    //     window['$api'] = {
+    //         captureScreenshot,
+    //         switchAutoRotate,
+    //         changePointCloudMode,
+    //         showMark,
+    //         startMark,
+    //         deleteMark,
+    //         updateMark,
+    //         showWaterMark,
+    //         setWaterMark,
+    //     };
+    // }
 
     /**
      * 销毁渲染器不再使用

@@ -1,6 +1,6 @@
 {
     "name": "@reall3d/reall3dviewer",
-    "version": "2.5.7",
+    "version": "3.0.0",
     "type": "module",
     "files": [
         "dist"

@@ -1,10 +1,10 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import { GetGaussianText, HttpQueryGaussianText } from '../../events/EventConstants';
-import { Events } from '../../events/Events';
-import { HalfChars, SplatDataSize32 } from '../../utils/consts/GlobalConstants';
-import { parseWordToTexdata } from '../wasm/WasmParser';
+import { GetGaussianText, HttpQueryGaussianText } from '../events/EventConstants';
+import { Events } from '../events/Events';
+import { HalfChars } from '../utils/GlobalConstants';
+import { parseWordToTexdata } from '../modeldata/wasm/WasmParser';
 
 export function setupGaussianText(events: Events) {
     const fire = (key: number, ...args: any): any => events.fire(key, ...args);
@@ -53,11 +53,11 @@ export function setupGaussianText(events: Events) {
             gsCount += wordJson.length;
         }
 
-        const data = new Uint8Array(gsCount * SplatDataSize32);
+        const data = new Uint8Array(gsCount * 32);
         let i = 0;
         for (let wordJson of wordsJson) {
             for (let nums of wordJson) {
-                data.set(await parseWordToTexdata(nums[0], nums[1], isY, isNgativeY), SplatDataSize32 * i++);
+                data.set(await parseWordToTexdata(nums[0], nums[1], isY, isNgativeY), 32 * i++);
             }
         }
         return data;

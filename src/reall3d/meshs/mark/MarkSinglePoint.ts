@@ -43,6 +43,7 @@ export class MarkSinglePoint extends Group {
                 mainTagOpacity: 0.8,
                 title: '标记点' + cnt,
                 note: '',
+                scale: 0.01,
                 intersectable: false,
             };
         } else {
@@ -58,6 +59,7 @@ export class MarkSinglePoint extends Group {
                 mainTagOpacity: obj.mainTagOpacity || 0.8,
                 title: obj.title || '标记点',
                 note: obj.note || '',
+                scale: obj.scale || 0.01,
                 intersectable: obj.intersectable || false,
             };
         }
@@ -83,7 +85,7 @@ export class MarkSinglePoint extends Group {
         const css3dTag = new CSS3DSprite(tagWarp);
         css3dTag.position.set(data.point[0], data.point[1], data.point[2]);
         css3dTag.element.style.pointerEvents = 'none';
-        css3dTag.scale.set(0.01, 0.01, 0.01);
+        css3dTag.scale.set(data.scale, data.scale, data.scale);
 
         that.data = data;
         that.css3dTag = css3dTag;

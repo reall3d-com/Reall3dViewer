@@ -52,6 +52,8 @@ export class SplatModel {
 
     /** Raw model data */
     public splatData: Uint8Array = null;
+    /** Raw model data (xyz) */
+    public xyz: Float32Array = null;
     /** Watermark data */
     public watermarkData: Uint8Array = null;
     /** Number of Gaussians in the model */
@@ -92,8 +94,6 @@ export class SplatModel {
 
     /** Model metadata */
     public meta: MetaData;
-    /** Map of cut data for large scenes */
-    public map: Map<string, CutData>;
 
     /** Bounding box extents */
     public minX: number = Infinity;
@@ -118,24 +118,16 @@ export class SplatModel {
 
     public fetchLimit: number = 0;
 
-    /** Active points data */
-    public activePoints: any;
-
     /** sh palettes */
     public palettes?: Uint8Array;
 
     public isPointCloudPly?: boolean;
-
-    // ---------- LOD ----------
-    public splatTiles: SplatTiles;
-    // -------------------------
 
     constructor(opts: ModelOptions, meta: MetaData = {}) {
         this.opts = { ...opts };
         const that = this;
 
         that.meta = meta;
-        meta.isLargeScene && (that.map = new Map());
         that.metaMatrix = meta.transform ? new Matrix4().fromArray(meta.transform) : null;
 
         if (!opts.format) {
@@ -157,32 +149,6 @@ export class SplatModel {
         }
         that.abortController = new AbortController(); // TODO
     }
-}
-
-/**
- * Data chunk used in large-scene tiling
- */
-export interface CutData {
-    /** Number of Gaussians in this chunk */
-    splatCount?: number;
-    /** Raw data of this chunk */
-    splatData?: Uint8Array;
-
-    // Bounding box of the chunk
-    minX?: number;
-    maxX?: number;
-    minY?: number;
-    maxY?: number;
-    minZ?: number;
-    maxZ?: number;
-    // Bounding sphere of the chunk
-    center?: Vector3;
-    radius?: number;
-
-    /** Current renderable points (computed at runtime) */
-    currentRenderCnt?: number;
-    /** Distance to camera (computed at runtime) */
-    distance?: number;
 }
 
 /**

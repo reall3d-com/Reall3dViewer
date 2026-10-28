@@ -1,7 +1,7 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import './reall3d/style/style.less';
+import './reall3d/assets/style/style.less';
 import 'virtual:svg-icons-register';
 
 import { Reall3dViewer } from './reall3d/viewer/Reall3dViewer';
@@ -10,23 +10,22 @@ import { Reall3dMapViewer } from './reall3d/mapviewer/Reall3dMapViewer';
 import { globalEv } from './reall3d/events/GlobalEV';
 import { StopBgAudio } from './reall3d/events/EventConstants';
 import { TransitionEffects } from './reall3d/meshs/splatmesh/SplatMeshOptions';
-import { isMobile } from './reall3d/utils/consts/GlobalConstants';
+import { isMobile } from './reall3d/utils/GlobalConstants';
 
 const params: URLSearchParams = new URLSearchParams(location.search);
 let url = params.get('url');
 const debugMode = !!params.get('debug');
 
-const maxRenderCountOfPc = 512 * 10000;
 const shDegree = 3;
 
 let viewer: Reall3dViewer;
 let mapViewer: Reall3dMapViewer;
 if (url) {
-    viewer = new Reall3dViewer({ debugMode, maxRenderCountOfPc: 3000_0000, shDegree });
+    viewer = new Reall3dViewer({ debugMode, shDegree });
     url.endsWith('.scene.json') ? viewer.addScene(url) : viewer.addModel(url);
     debugMode && initDevMode(true);
 } else {
-    viewer = new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
+    viewer = new Reall3dViewer({ debugMode: true, shDegree });
     // viewer.addModel(`https://reall3d.com/demo-models/hornedlizard.v3.spx`);
     viewer.addModel(`https://reall3d.com/demo-models/hornedlizard.v3.glb`); // KHR_gaussian_splatting_compression_spz_2
     // viewer.addModel(`https://reall3d.com/demo-models/yz.spx`);
@@ -42,7 +41,6 @@ if (url) {
 
 // 以下仅开发模式使用
 function initDevMode(infoOnly = false) {
-    document.querySelectorAll('.prd-mode').forEach(dom => dom['style'].removeProperty('display'));
     let spans: NodeListOf<HTMLSpanElement> = document.querySelectorAll('#gsviewer .operation span');
     let jsHeapSizeLimit = (performance['memory'] || { usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0 }).jsHeapSizeLimit;
     !jsHeapSizeLimit && document.querySelectorAll('.tr-memory').forEach(dom => dom.classList.toggle('hidden'));
@@ -65,6 +63,7 @@ function initDevMode(infoOnly = false) {
     }
 }
 
+let lightFactor = 1.0;
 function fnClick(className: string) {
     if (className == 'switch-debug') {
         let txt = document.querySelector('#gsviewer .debug').classList.toggle('hidden') ? '＋' : '－';
@@ -75,37 +74,27 @@ function fnClick(className: string) {
     } else if (className == 'demo1') {
         viewer?.dispose();
         mapViewer?.dispose();
-        viewer = viewer || new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
+        viewer = viewer || new Reall3dViewer();
         viewer.reset({ debugMode: true });
         setTimeout(() => viewer.addModel(`https://reall3d.com/demo-models/yz.spx`), 50); // Let it GC
-        globalEv.fire(StopBgAudio);
-    } else if (className == 'demo2') {
-        viewer?.dispose();
-        mapViewer?.dispose();
-        viewer = viewer || new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
-        viewer.reset({ debugMode: true });
-        setTimeout(() => viewer.addModel(`https://reall3d.com/demo-models/jtstjg.spx`), 50); // Let it GC
-        globalEv.fire(StopBgAudio);
     } else if (className == 'demo3') {
         viewer?.dispose();
         mapViewer?.dispose();
-        viewer = viewer || new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
+        viewer = viewer || new Reall3dViewer();
         viewer.reset({ debugMode: true });
         setTimeout(() => viewer.addModel(`https://reall3d.com/demo-models/djj.spx`), 50); // Let it GC
     } else if (className == 'lod') {
         viewer?.dispose();
         mapViewer?.dispose();
-        viewer = viewer || new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
+        viewer = viewer || new Reall3dViewer();
         viewer.reset({ debugMode: true });
-        // setTimeout(() => viewer.addScene(`https://reall3d.com/demo-models/lod-v1/hgd/hgd-lod.scene.json`), 50); // Let it GC
         setTimeout(() => viewer.addScene(`https://reall3d.com/demo-models/lod-metas/hgd/hgd-lod-meta.scene.json`), 50); // Let it GC
     } else if (className == 'lff-house') {
         viewer?.dispose();
         mapViewer?.dispose();
-        viewer = viewer || new Reall3dViewer({ debugMode: true, maxRenderCountOfPc, shDegree });
+        viewer = viewer || new Reall3dViewer();
         viewer.reset({ debugMode: true, transitionEffect: TransitionEffects.ScreenCenterCircle });
         setTimeout(() => viewer.addModel(`https://reall3d.com/demo-models/tijerin-hobbit-2.5m.spx`), 50); // Let it GC
-        globalEv.fire(StopBgAudio);
     } else if (className == 'switch-rotate') {
         let opts: Reall3dViewerOptions = viewer?.options();
         viewer?.options({ autoRotate: !opts.autoRotate });
@@ -114,12 +103,13 @@ function fnClick(className: string) {
     } else if (className == 'switch-deiplay-mode') {
         viewer?.switchDeiplayMode();
     } else if (className == 'add-lightFactor') {
-        viewer?.options({ lightFactor: viewer?.options().lightFactor + 0.1 });
+        lightFactor += 0.1;
+        viewer?.options({ lightFactor });
     } else if (className == 'default-lightFactor') {
         viewer?.options({ lightFactor: 1 });
     } else if (className == 'sub-lightFactor') {
-        let opts: Reall3dViewerOptions = viewer?.options();
-        viewer?.options({ lightFactor: opts.lightFactor - 0.1 });
+        lightFactor -= 0.1;
+        viewer?.options({ lightFactor });
     } else if (className == 'show-watermark') {
         viewer?.fire(1, 1);
     } else if (className == 'hide-watermark') {
@@ -142,16 +132,16 @@ function fnClick(className: string) {
         viewer?.options({ markMode: true, markType: 'distance' });
     } else if (className == 'mark-circle') {
         viewer?.options({ markMode: true, markType: 'circle' });
-    } else if (className == 'add-pos') {
+    } else if (className.includes('add-pos')) {
         viewer?.fire(2);
         mapViewer?.fire(2);
-    } else if (className == 'fly') {
+    } else if (className.includes('flying')) {
         viewer?.fire(3);
         mapViewer?.fire(3);
-    } else if (className == 'clear-pos') {
+    } else if (className.includes('clear-pos')) {
         viewer?.fire(4);
         mapViewer?.fire(4);
-    } else if (className == 'fly-save') {
+    } else if (className.includes('fly-save')) {
         viewer?.fire(5);
         mapViewer?.fire(5);
     } else if (className == 'add-sh') {

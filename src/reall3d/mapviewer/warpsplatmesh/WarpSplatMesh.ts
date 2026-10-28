@@ -11,7 +11,7 @@ import { SplatMeshOptions } from '../../meshs/splatmesh/SplatMeshOptions';
 import { MetaData } from '../../modeldata/MetaData';
 import { Reall3dMapViewer } from '../Reall3dMapViewer';
 import { Reall3dMapViewerOptions } from '../Reall3dMapViewerOptions';
-import { isMobile } from '../../utils/consts/GlobalConstants';
+import { isMobile } from '../../utils/GlobalConstants';
 
 export class WarpSplatMesh extends Mesh {
     public readonly isWarpSplatMesh: boolean = true;
@@ -48,13 +48,11 @@ export class WarpSplatMesh extends Mesh {
                     meta.transform = matrix.toArray();
                 }
                 that.metaMatrix = matrix;
-                const bigSceneMode = !!meta.isLargeScene;
+                const bigSceneMode = meta.url?.endsWith('.json');
                 const pointcloudMode = false;
                 const depthTest = false;
                 const showWatermark = !!meta.showWatermark;
                 const opts: SplatMeshOptions = { renderer, scene, controls, pointcloudMode, bigSceneMode, showWatermark, depthTest, mapMode: true };
-                opts.maxRenderCountOfMobile ??= opts.bigSceneMode ? 128 * 10240 : 400 * 10000;
-                opts.maxRenderCountOfPc ??= opts.bigSceneMode ? 320 * 10000 : 400 * 10000;
                 opts.debugMode = (that.mapViewer.events.fire(GetOptions) as Reall3dMapViewerOptions).debugMode;
                 that.opts = opts;
                 that.meta = meta;
@@ -149,7 +147,7 @@ export class WarpSplatMesh extends Mesh {
                 } else {
                     const meta = that.meta;
                     const opts: SplatMeshOptions = { ...that.opts };
-                    opts.bigSceneMode = !!meta.isLargeScene;
+                    opts.bigSceneMode = !!meta.url?.endsWith('.json');
                     const splatMesh = new SplatMesh(opts);
                     that.splatMesh = splatMesh;
                     that.opts.scene.add(splatMesh);

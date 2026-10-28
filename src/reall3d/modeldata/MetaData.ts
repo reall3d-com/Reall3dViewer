@@ -1,8 +1,8 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import { CameraInfo } from '../controls/SetupCameraControls';
-import { CircularAudioMaskOptions } from '../media/CircularAudioMask';
+import { CameraInfo } from '../scene/SetupCameraControls';
+import { CircularAudioMaskOptions } from '../meshs/media/CircularAudioMask';
 import { MinimapOptions } from '../scene/SetupMinimap';
 
 /**
@@ -62,6 +62,8 @@ export interface MetaData {
 
     /** Audio */
     audio?: any;
+    /** bg Audio */
+    bgAudio?: string;
 
     /** render quality level */
     qualityLevel?: number;
@@ -81,10 +83,6 @@ export interface MetaData {
     /** Enable particle loading effect (small scenes) */
     particleMode?: boolean;
 
-    /** is large scene */
-    isLargeScene?: boolean;
-    /** cut size */
-    cutSize?: number;
     /** Transformation matrix */
     transform?: number[];
     /** Geolocation (EPSG:4326 WGS 84) */
@@ -110,14 +108,6 @@ export interface MetaData {
     pcLodDistances?: number[];
     mobileLodDistances?: number[];
 
-    mobileLodCacheCount?: number;
-    pcLodCacheCount?: number;
-
-    /**
-     * Environment(skybox) flag. Defaults to false.
-     */
-    enableEnvironment?: boolean;
-
     /**
      * View mode. 1:First-Person View, 3:Third-Person View.
      */
@@ -141,6 +131,30 @@ export interface MetaData {
     minimap?: MinimapOptions;
     // 音频遮罩
     audioMask?: CircularAudioMaskOptions;
+
+    /**
+     * 是否使用GPU缓存，默认false（true:使用GPU缓存，false:使用内存缓存）
+     * 较高端设备可尝试GPU缓存调优性能，应按实际调配
+     */
+    useGpuCache?: boolean;
+    /**
+     * PC端大场景时文件缓存数量，默认 DefaultLodCacheFileCount
+     * 设定值太小可能达不到缓存效果反而产生影响；设定值太大可能引起浏览器内存限制，或者引起内存分配失败等运行期异常
+     * 应结合目标设备能力以及切割的数据文件大小，综合判断设定
+     */
+    pcLodCacheFileCount?: number;
+    /**
+     * 移动端大场景时文件缓存数量，默认 DefaultLodCacheFileCount
+     * 设定值太小可能达不到缓存效果反而产生影响；设定值太大可能引起浏览器内存限制，或者引起内存分配失败等运行期异常
+     * 应结合目标设备能力以及切割的数据文件大小，综合判断设定
+     */
+    mobileLodCacheFileCount?: number;
+
+    /** Color brightness factor. Defaults to DefaultLightFactor */
+    lightFactor?: number | undefined;
+
+    /** Background color (defaults to '#000000') */
+    background?: string;
 }
 
 /**

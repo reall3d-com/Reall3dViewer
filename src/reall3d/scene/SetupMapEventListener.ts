@@ -2,7 +2,7 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Vector3, MathUtils } from 'three';
-import { Events } from '../../events/Events';
+import { Events } from '../events/Events';
 import {
     GetCanvas,
     KeyActionCheckAndExecute,
@@ -24,13 +24,15 @@ import {
     FlySavePositions,
     OnViewerDispose,
     FlyingPause,
-} from '../../events/EventConstants';
-import { SplatMesh } from '../../meshs/splatmesh/SplatMesh';
-import { MarkDistanceLine } from '../../meshs/mark/MarkDistanceLine';
-import { MarkMultiLines } from '../../meshs/mark/MarkMultiLines';
-import { MarkMultiPlans } from '../../meshs/mark/MarkMulitPlans';
-import { MarkCirclePlan } from '../../meshs/mark/MarkCirclePlan';
-import { Reall3dMapViewerOptions } from '../Reall3dMapViewerOptions';
+    StopBgAudio,
+} from '../events/EventConstants';
+import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
+import { MarkDistanceLine } from '../meshs/mark/MarkDistanceLine';
+import { MarkMultiLines } from '../meshs/mark/MarkMultiLines';
+import { MarkMultiPlans } from '../meshs/mark/MarkMulitPlans';
+import { MarkCirclePlan } from '../meshs/mark/MarkCirclePlan';
+import { Reall3dMapViewerOptions } from '../mapviewer/Reall3dMapViewerOptions';
+import { globalEv } from '../events/GlobalEV';
 
 class MouseState {
     public down: number = 0;
@@ -67,6 +69,12 @@ export function setupMapEventListener(events: Events) {
         //     keySet.clear();
         //     return;
         // }
+
+        if (keySet.has('Escape')) {
+            globalEv.fire(StopBgAudio);
+            keySet.clear();
+            return;
+        }
 
         if (keySet.has('KeyH')) {
             const splatMesh: SplatMesh = fire(MapGetSplatMesh);
@@ -419,7 +427,6 @@ export function setupMapEventListener(events: Events) {
     function canvasTouchstartEventListener(event: TouchEvent) {
         event.preventDefault();
         if (disposed) return;
-        // fire(StopAutoRotate);
         fire(FlyingPause);
         mouseState.down = event.touches.length;
         if (mouseState.down === 1) {

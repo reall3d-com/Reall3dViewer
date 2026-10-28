@@ -49,7 +49,7 @@ import { setupVirtualGround } from './SetupVirtualGround';
 import { setupPhysics } from './SetupPhysics';
 import { globalEv } from '../events/GlobalEV';
 import { loadFile } from '../modeldata/loaders/FileLoader';
-import { DecoderPath } from '../utils/consts/GlobalConstants';
+import { DecoderPath } from '../utils/GlobalConstants';
 import { sleep } from '../utils/CommonUtils';
 
 export function setupPlayer(events: Events) {

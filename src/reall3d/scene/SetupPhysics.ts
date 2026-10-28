@@ -21,7 +21,7 @@ import {
     PhysicsGetEnvCollision,
     GetMeta,
 } from '../events/EventConstants';
-import { DecoderPath } from '../utils/consts/GlobalConstants';
+import { DecoderPath } from '../utils/GlobalConstants';
 import { MetaData } from '../modeldata/MetaData';
 
 export function setupPhysics(events: Events) {
@@ -478,6 +478,7 @@ export function setupPhysics(events: Events) {
 
     function keydownEventListener(e: KeyboardEvent) {
         if (e.target['type'] === 'text') return;
+        if (e.code === 'AudioVolumeDown' || e.code === 'AudioVolumeUp') return;
         e.preventDefault();
         keySet.add(e.code);
     }

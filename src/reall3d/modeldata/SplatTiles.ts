@@ -18,10 +18,6 @@ export interface SplatTiles {
     totalCount: number;
     // 环境模型
     environment?: string | SplatFile;
-    // 手机缓存Splat数量的阈值，高于此值时触发检查丢弃
-    mobileLodCacheCount?: number;
-    // PC缓存Splat数量的阈值，高于此值时触发检查丢弃
-    pcLodCacheCount?: number;
 
     /**
      * Target LOD levels to select from available data levels.
@@ -32,6 +28,9 @@ export interface SplatTiles {
     mobileLodTargets?: number[];
     // 内部使用
     lodTargets?: number[];
+    lodTargetsTotalCount: number;
+    lodTargetsFileCount: number;
+    maxFileSplatCount: number;
 
     /**
      * Distance thresholds to switch between LOD levels.
@@ -56,21 +55,29 @@ export interface SplatTiles {
 
 export interface SplatFile {
     fileKey: string;
-    url: string;
+    url?: string;
     lod?: number;
+    count?: number;
 
     // 状态
     status?: DataStatus;
     lastTime?: number;
 
+    // 是否就绪
+    textureReady?: boolean;
+    offset?: number;
+
     // 数据
     spxHeader?: SpxHeader;
     downloadCount?: number;
     downloadData?: Uint8Array;
+    xyz?: Float32Array;
     abortController?: AbortController;
 
     // 内部计算用
     currentDistance?: number;
+
+    targetLayer?: number;
 }
 
 export interface SplatTileNode {

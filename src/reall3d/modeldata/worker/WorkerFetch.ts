@@ -1,16 +1,19 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
+import { extractSplatXYZ } from '../../utils/CommonUtils';
 import {
     WkFetcherDataShDegree,
-    WkFetcherDone,
+    WkA90FetcherDone,
     WkFetcherDownloadSplatCount,
     WkFetcherPalettes,
     WkFetcherSplatData,
     WkFetcherStatus,
-    WkFetcherUrl,
-    WkWorkerDispose,
-} from '../../utils/consts/WkConstants';
+    WkA02FetcherUrl,
+    WkA02Dispose,
+    WkXyz,
+    WkUrl,
+} from './WkConstants';
 import { loadSog } from '../loaders/SogLoader';
 import { loadSpx } from '../loaders/SpxLoader';
 import { ModelStatus, SplatModel } from '../ModelData';
@@ -31,22 +34,26 @@ async function downloadAndParse(url: string) {
     mapUrlModel.delete(url);
 
     if (warpModel.status == ModelStatus.FetchDone) {
+        const downloadData = warpModel.splatData.subarray(0, warpModel.downloadSplatCount * 32);
+        warpModel.xyz = extractSplatXYZ(downloadData);
+
         worker.postMessage(
             {
-                [WkFetcherDone]: true,
-                [WkFetcherUrl]: url,
+                [WkA90FetcherDone]: true,
+                [WkUrl]: url,
                 [WkFetcherStatus]: warpModel.status,
                 [WkFetcherSplatData]: warpModel.splatData,
+                [WkXyz]: warpModel.xyz,
                 [WkFetcherDownloadSplatCount]: warpModel.downloadSplatCount,
                 [WkFetcherDataShDegree]: warpModel.dataShDegree,
                 [WkFetcherPalettes]: warpModel.palettes,
             },
-            [warpModel.splatData.buffer],
+            [warpModel.splatData.buffer, warpModel.xyz.buffer],
         );
     } else {
         worker.postMessage({
-            [WkFetcherDone]: true,
-            [WkFetcherUrl]: url,
+            [WkA90FetcherDone]: true,
+            [WkUrl]: url,
             [WkFetcherStatus]: ModelStatus.FetchFailed,
         });
     }
@@ -54,10 +61,10 @@ async function downloadAndParse(url: string) {
 
 worker.onmessage = (e: any) => {
     const data: any = e.data;
-    if (data[WkFetcherUrl]) {
+    if (data[WkA02FetcherUrl]) {
         // 下载解析
-        downloadAndParse(data[WkFetcherUrl]);
-    } else if (data[WkWorkerDispose]) {
+        downloadAndParse(data[WkUrl]);
+    } else if (data[WkA02Dispose]) {
         // 取消下载
         const splatModels = [...mapUrlModel.values()];
         for (const model of splatModels) {

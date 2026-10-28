@@ -52,18 +52,6 @@ export interface Reall3dViewerOptions {
     pointcloudMode?: boolean | undefined;
 
     /**
-     * Maximum renderable Gaussian points count for mobile devices.
-     * Can be dynamically updated via viewer.options()
-     */
-    maxRenderCountOfMobile?: number | undefined;
-
-    /**
-     * Maximum renderable Gaussian points count for PC.
-     * Can be dynamically updated via viewer.options()
-     */
-    maxRenderCountOfPc?: number | undefined;
-
-    /**
      * Color brightness factor. Defaults to 1.1.
      */
     lightFactor?: number | undefined;
@@ -219,11 +207,6 @@ export interface Reall3dViewerOptions {
      * Auto play background audio (defaults to false)
      */
     autoPlayBgAudio?: boolean;
-
-    /**
-     * Environment(skybox) flag. Defaults to false.
-     */
-    enableEnvironment?: boolean;
 
     /**
      * View mode. 1:First-Person View, 3:Third-Person View.

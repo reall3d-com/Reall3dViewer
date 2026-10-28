@@ -43,13 +43,15 @@ import {
     GetCSS2DRenderer,
     RenderCSS2D3D,
     OnMetaDataLoaded,
+    PlaytBgAudio,
 } from '../events/EventConstants';
-import { initMapViewerOptions, initTileMap } from './utils/MapUtils';
+import { initMapViewerOptions, initTileMap } from '../scene/SetupMapUtils';
 import { setupAllEventsMapVerwer } from '../scene/SetupAllEvents';
 import { CSS2DRenderer, CSS3DRenderer } from 'three/examples/jsm/Addons.js';
 import { WarpSplatMesh } from './warpsplatmesh/WarpSplatMesh';
-import { isMobile, ViewerVersion } from '../utils/consts/GlobalConstants';
+import { isMobile, ViewerVersion } from '../utils/GlobalConstants';
 import * as tt from '@gotoeasy/three-tile';
+import { globalEv } from '../events/GlobalEV';
 
 /**
  * Built-in Map viewer with Gaussian Splatting model support
@@ -175,15 +177,22 @@ export class Reall3dMapViewer extends EventDispatcher<tt.plugin.GLViewerEventMap
                 fire(OnSetFlyTargets, data.flyTargets || []);
                 fire(OnSetFlyDuration, data.flyDuration);
 
-                const set = new Set();
+                const set = new Set<string>();
                 for (let url of data.scenes) {
+                    url = new URL(url, urlScenesJson).href;
+
                     if (!set.has(url)) {
                         new WarpSplatMesh(url, that);
                         set.add(url);
                     }
                 }
 
-                setTimeout(() => fire(Flying, true), 1000);
+                data.scenes = [...set];
+
+                data.bgAudio && (data.bgAudio = new URL(data.bgAudio, urlScenesJson).href);
+                data.bgAudio && globalEv.fire(PlaytBgAudio, data.bgAudio, true);
+
+                setTimeout(() => !that.disposed && fire(Flying, true), 1000);
             })
             .catch(e => {
                 console.error(e.message);
@@ -293,6 +302,9 @@ export interface ScenesJsonData {
      * 场景url列表
      */
     scenes?: string[];
+
+    /** bg Audio */
+    bgAudio?: string;
 
     /** Fly-through camera positions */
     flyPositions?: number[];

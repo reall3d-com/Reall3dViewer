@@ -2,9 +2,9 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Audio, AudioListener, AudioLoader } from 'three';
-import { globalEv } from '../events/GlobalEV';
-import { SetBgAudioVolumeDown, SetBgAudioVolumeUp } from '../events/EventConstants';
-import { Events } from '../events/Events';
+import { globalEv } from '../../events/GlobalEV';
+import { SetBgAudioVolumeDown, SetBgAudioVolumeUp } from '../../events/EventConstants';
+import { Events } from '../../events/Events';
 
 export class AudioText {
     private audio: Audio;

@@ -38,13 +38,13 @@ import {
     GetCameraLookUp,
     MapSortSplatMeshRenderOrder,
     MapSceneTraverseDispose,
-} from '../../events/EventConstants';
-import { Events } from '../../events/Events';
-import { Reall3dMapViewerOptions } from '../Reall3dMapViewerOptions';
+} from '../events/EventConstants';
+import { Events } from '../events/Events';
+import { Reall3dMapViewerOptions } from '../mapviewer/Reall3dMapViewerOptions';
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
-import { SplatMesh } from '../../meshs/splatmesh/SplatMesh';
-import { WarpSplatMesh } from '../warpsplatmesh/WarpSplatMesh';
-import { isMobile } from '../../utils/consts/GlobalConstants';
+import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
+import { WarpSplatMesh } from '../mapviewer/warpsplatmesh/WarpSplatMesh';
+import { isMobile } from '../utils/GlobalConstants';
 import * as tt from '@gotoeasy/three-tile';
 
 export function setupMapUtils(events: Events) {

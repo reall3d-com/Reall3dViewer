@@ -29,7 +29,7 @@ import {
     SplatUpdateSh3Texture,
     SplatUpdateShDegree,
     UploadSplatTexture,
-    UploadSplatTextureDone,
+    OnUploadDblIndexDone,
     NotifyViewerNeedUpdate,
     SplatUpdateViewport,
     GetSplatMaterial,
@@ -38,7 +38,7 @@ import {
     CreateSplatUniforms,
     SplatUpdateFocal,
     SplatUpdateSplatIndex,
-    GetWorker,
+    GetSortWorker,
     GetCanvasSize,
     Information,
     GetSplatGeometry,
@@ -48,7 +48,7 @@ import {
     SplatGeometryDispose,
     SplatMaterialDispose,
     GetMaxRenderCount,
-    SplatUpdateTexture,
+    SplatUpdateSglTexture,
     SplatUpdateUsingIndex,
     SplatUpdatePointMode,
     SplatUpdateBigSceneMode,
@@ -88,7 +88,19 @@ import {
     ComputeTextureWidthHeight,
     GetSplatShaderDefines,
     SplatUpdateUseLod,
-    PushCacheXyzs,
+    GetMeta,
+    NotifyWkA09SortPart,
+    GetDataArrayTexture,
+    SplatUploadTextureGpuCache,
+    GetLodDataInfo,
+    GetShaderMaterial,
+    NotifyWkA01BackXyz,
+    NotifyWkA01BackXyzIndex,
+    NotifyWkA01SetTextureSize,
+    SplatUpdateDblTexture,
+    NotifyWkA01BackSplatBuffer,
+    NotifyWkA09DblTextureReady,
+    NotifyWkA09SglTextureReady,
 } from '../../events/EventConstants';
 import { SplatMeshOptions, TransitionEffects } from './SplatMeshOptions';
 import {
@@ -127,32 +139,22 @@ import {
     VarUsingIndex,
     VarViewport,
     VarWaterMarkColor,
-} from '../../internal/Index';
+} from './WebglVars';
 import {
     WkIndex,
     WkRenderSplatCount,
     WkSortTime,
-    WkSplatIndex,
-    WkTextureReady,
-    WkVersion,
+    WkDepthIndex,
     WkSortStartTime,
     WkXyz,
-    WkMinX,
-    WkMaxX,
-    WkMinY,
-    WkMaxY,
-    WkMinZ,
-    WkMaxZ,
-    WkVisibleSplatCount,
-    WkModelSplatCount,
-    WkWatermarkCount,
     WkBucketBits,
     WkSortType,
-    WkSplatIndexDone,
-    isMobile,
-    QualityLevels,
-    WkSorterXyzDone,
-} from '../../utils/consts/Index';
+    WkA09BackDepthIndex,
+    WkXyzIndex,
+    WkA90BackXyz,
+    WkA90BackXyzIndex,
+    WkA90DepthIndex,
+} from '../../modeldata/worker/WkConstants';
 import vertexShader from './shaders/SplatVertex.glsl';
 import fragmentShader from './shaders/SplatFragment.glsl';
 import { MetaData } from '../../modeldata/MetaData';
@@ -161,18 +163,23 @@ import { shaderChunk, sleep } from '../../utils/CommonUtils';
 import CmnFns from './shaders/chunks/CmnFns.glsl';
 import FvEffect from './shaders/chunks/FvEffect.glsl';
 import WatermarkEffect from './shaders/chunks/WatermarkEffect.glsl';
+import { SplatFile } from '../../modeldata/SplatTiles';
+import { SplatGpuCache } from './SplatGpuCache';
+import { isMobile, QualityLevels } from '../../utils/GlobalConstants';
 
 export function setupSplatMesh(events: Events) {
     let disposed = false;
     const on = (key: number, fn?: Function, multiFn?: boolean): Function | Function[] => events.on(key, fn, multiFn);
     const fire = (key: number, ...args: any): any => events.fire(key, ...args);
 
+    let maxRenderCount: number = 0;
     let maxRadius: number = 0;
     let currentMaxRadius: number = 0;
     const arySwitchProcess: any[] = [];
     let bucketBits: number = 0;
     let sortType: number = 0;
     const PalettesWidth = 960;
+    let splatCacheManager: SplatGpuCache = null;
 
     let currentDisplayShDegree: number = 0;
     on(GetCurrentDisplayShDegree, () => currentDisplayShDegree);
@@ -196,9 +203,8 @@ export function setupSplatMesh(events: Events) {
 
         let geometry = new InstancedBufferGeometry().copy(baseGeometry);
 
-        const MaxSplatCount = await fire(GetMaxRenderCount);
         if (disposed) return;
-        const indexArray = new Uint32Array(MaxSplatCount);
+        const indexArray = new Uint32Array(maxRenderCount);
         const indexAttribute = new InstancedBufferAttribute(indexArray, 1, false);
         indexAttribute.setUsage(DynamicDrawUsage);
         indexAttribute.needsUpdate = true;
@@ -212,7 +218,7 @@ export function setupSplatMesh(events: Events) {
             indexAttribute.addUpdateRange(0, renderSplatCount);
             indexAttribute.needsUpdate = true;
             indexAttribute.onUpload(() => {
-                fire(UploadSplatTextureDone, index);
+                fire(OnUploadDblIndexDone, index);
                 fire(Information, { renderSplatCount });
             });
             geometry.instanceCount = renderSplatCount;
@@ -245,7 +251,19 @@ export function setupSplatMesh(events: Events) {
     on(CreateSplatMaterial, async () => {
         if (disposed) return;
         const opts: SplatMeshOptions = fire(GetOptions);
-        const { texwidth, texheight, texdepth, texheightary } = fire(ComputeTextureWidthHeight, await fire(GetMaxRenderCount));
+        const meta: MetaData = fire(GetMeta);
+
+        const fnCounts = async () => {
+            if (!fire(IsBigSceneMode)) return { dataCount: maxRenderCount };
+            const { totalCount, lodTargetsTotalCount, lodTargetsFileCount, maxFileSplatCount } = await fire(GetLodDataInfo);
+            const dataCount = meta.useGpuCache ? lodTargetsTotalCount : maxRenderCount;
+            return { dataCount, totalCount, lodTargetsTotalCount, lodTargetsFileCount, maxFileSplatCount };
+        };
+        const { dataCount, lodTargetsFileCount, maxFileSplatCount } = await fnCounts();
+        const oTexSize = fire(ComputeTextureWidthHeight, dataCount, maxFileSplatCount, lodTargetsFileCount);
+        fire(NotifyWkA01SetTextureSize, oTexSize);
+        // console.log('--------oTexSize--------', dataCount, oTexSize);
+        const { texwidth, texheight, texdepth, texheightary, fullCache } = oTexSize;
         const material: ShaderMaterial = new ShaderMaterial({
             uniforms: fire(CreateSplatUniforms, texwidth, texheightary),
             vertexShader: genShaderSource(vertexShader),
@@ -258,21 +276,34 @@ export function setupSplatMesh(events: Events) {
             side: DoubleSide,
             defines: fire(GetSplatShaderDefines),
         });
+        on(GetShaderMaterial, () => material);
 
         const isBigScene: boolean = fire(IsBigSceneMode);
-        const dataArray0 = new Uint32Array(texwidth * texheight * 4);
-        let dataTexture0 = new DataArrayTexture(dataArray0, texwidth, texheightary, texdepth);
-        dataTexture0.format = RGBAIntegerFormat;
-        dataTexture0.type = UnsignedIntType;
-        dataTexture0.internalFormat = 'RGBA32UI';
-        dataTexture0.needsUpdate = true;
-        material.uniforms[VarSplatTexture0].value = dataTexture0;
-        const [texwidth1, texheight1, texheightary1, texdepth1] = isBigScene ? [texwidth, texheight, texheightary, texdepth] : [16, 1, 1, 1];
+        let dataTexture0: DataArrayTexture = null;
+        let dataTexture1: DataArrayTexture = null;
+        const isLodFileCache = isBigScene && !meta.useGpuCache;
+        const [texwidth1, texheight1, texheightary1, texdepth1] = isLodFileCache ? [texwidth, texheight, texheightary, texdepth] : [16, 1, 1, 1];
+
+        on(GetDataArrayTexture, () => {
+            if (dataTexture0) return dataTexture0;
+            const dataArray0 = new Uint32Array(texwidth * texheightary * texdepth * 4);
+            dataTexture0 = new DataArrayTexture(dataArray0, texwidth, texheightary, texdepth);
+            dataTexture0.format = RGBAIntegerFormat;
+            dataTexture0.type = UnsignedIntType;
+            dataTexture0.flipY = false;
+            dataTexture0.needsUpdate = true;
+            material.uniforms[VarSplatTexture0].value = dataTexture0;
+            return dataTexture0;
+        });
+        isBigScene && meta.useGpuCache && (splatCacheManager = new SplatGpuCache(events, texwidth, texheightary, texdepth, dataCount, fullCache));
+        dataTexture0 = fire(GetDataArrayTexture);
+
         const dataArray1 = new Uint32Array(texwidth1 * texheight1 * 4);
-        let dataTexture1 = new DataArrayTexture(dataArray1, texwidth1, texheightary1, texdepth1);
+        dataTexture1 = new DataArrayTexture(dataArray1, texwidth1, texheightary1, texdepth1);
         dataTexture1.format = RGBAIntegerFormat;
         dataTexture1.type = UnsignedIntType;
         dataTexture1.internalFormat = 'RGBA32UI';
+        dataTexture1.flipY = false;
         dataTexture1.needsUpdate = true;
         material.uniforms[VarSplatTexture1].value = dataTexture1;
 
@@ -296,33 +327,64 @@ export function setupSplatMesh(events: Events) {
         material.uniforms[VarShPalettes].value = dataTextureShPalettes;
 
         let isLastEmpty: boolean = false;
-        on(SplatUpdateTexture, async (texture: SplatTexdata) => {
-            if (!isBigScene) {
-                if (isLastEmpty && !texture.renderSplatCount) return; // 小场景，不要重复提交空数据
-                isLastEmpty = !texture.renderSplatCount;
+        let lastLayer = 0;
+        on(SplatUpdateSglTexture, async (texture: SplatTexdata) => {
+            if (isLastEmpty && !texture.renderSplatCount) return; // 小场景，不要重复提交空数据
+            isLastEmpty = !texture.renderSplatCount;
+
+            const dataArray = texture.texdata;
+            const dataTexture = dataTexture0;
+            dataTexture.image.data.set(dataArray);
+
+            const maxLayer = Math.min(Math.ceil((texture.visibleSplatCount * 32) / (texwidth * texheightary * 16)), texdepth);
+            for (let i = lastLayer; i < maxLayer; i++) {
+                // await sleep(Math.min(i, 20));
+                await sleep(10);
+                await new Promise<void>(resolve => {
+                    dataTexture.addLayerUpdate(i);
+                    dataTexture.onUpdate = () => resolve();
+                    dataTexture.needsUpdate = true;
+                });
+                lastLayer = i;
             }
 
-            const dataArray = texture.txdata;
-            texture.txdata = null;
+            texture.textureReady = true;
+            texture.textureReadyTime = Date.now();
+            fire(NotifyWkA09SglTextureReady, texture);
+            fire(OnTextureReadySplatCount, texture.renderSplatCount); // 用于判断小场景是否可以开始光圈过渡
+            fire(NotifyViewerNeedUpdate);
+        });
+
+        on(SplatUpdateDblTexture, async (texture: SplatTexdata) => {
+            const dataArray = texture.texdata;
+            texture.texdata = null;
             const dataTexture = texture.index ? dataTexture1 : dataTexture0;
             dataTexture.image.data.set(dataArray);
 
             const maxLayer = Math.ceil((texture.renderSplatCount * 32) / (texwidth * texheightary * 16));
             for (let i = 0; i < maxLayer; i++) {
-                await sleep(10);
-                await new Promise(resolve => {
+                await sleep(1);
+                await new Promise<void>(resolve => {
                     dataTexture.addLayerUpdate(i);
-                    dataTexture.onUpdate = () => resolve(1);
+                    dataTexture.onUpdate = () => resolve();
                     dataTexture.needsUpdate = true;
                 });
             }
 
-            texture.textureReady = true;
-            texture.textureReadyTime = Date.now();
-            notifyWorkerTextureReady(texture);
-            fire(OnTextureReadySplatCount, texture.renderSplatCount); // 用于判断小场景是否可以开始光圈过渡
+            fire(NotifyWkA09DblTextureReady, texture);
+            fire(NotifyWkA01BackSplatBuffer, dataArray);
+        });
+
+        let cacheDoing = false;
+        on(SplatUploadTextureGpuCache, async (splatFile: SplatFile) => {
+            if (cacheDoing) return (await sleep(5)) && fire(SplatUploadTextureGpuCache, splatFile);
+            cacheDoing = true;
+
+            await splatCacheManager.uploadSplatFile(splatFile);
+            splatFile.textureReady = true;
 
             fire(NotifyViewerNeedUpdate);
+            cacheDoing = false;
         });
 
         on(SplatUpdateSh12Texture, async (datas: Uint8Array[]) => {
@@ -436,8 +498,6 @@ export function setupSplatMesh(events: Events) {
         on(SplatUpdateLightFactor, (value: number) => {
             material.uniforms[VarLightFactor].value = value;
             material.uniformsNeedUpdate = true;
-            const opts: SplatMeshOptions = fire(GetOptions);
-            opts.lightFactor = value;
             fire(NotifyViewerNeedUpdate);
         });
 
@@ -535,13 +595,26 @@ export function setupSplatMesh(events: Events) {
             fire(NotifyViewerNeedUpdate);
         });
         on(
+            OnSmallSceneShowDone,
+            () => {
+                console.info('OnSmallSceneShowDone, clear image.data');
+                dataTexture0.image.data = null;
+                dataTexture1.image.data = null;
+                dataTextureSh12.image.data = null;
+                dataTextureSh3.image.data = null;
+                dataTextureShPalettes.image.data = null;
+            },
+            true,
+        );
+        on(
             SplatMaterialDispose,
             () => {
                 material.dispose();
-                dataTexture0 && dataTexture0.dispose();
-                dataTexture1 && dataTexture1.dispose();
-                dataTextureSh12 && dataTextureSh12.dispose();
-                dataTextureSh3 && dataTextureSh3.dispose();
+                splatCacheManager?.dispose();
+                dataTexture0?.dispose();
+                dataTexture1?.dispose();
+                dataTextureSh12?.dispose();
+                dataTextureSh3?.dispose();
                 dataTextureShPalettes?.dispose();
             },
             true,
@@ -558,6 +631,7 @@ export function setupSplatMesh(events: Events) {
     }
 
     on(CreateSplatMesh, async () => {
+        maxRenderCount = await fire(GetMaxRenderCount);
         const mesh = new Mesh(await fire(CreateSplatGeometry), await fire(CreateSplatMaterial));
         fire(SplatUpdateFocal);
         fire(SplatUpdateViewport);
@@ -567,8 +641,12 @@ export function setupSplatMesh(events: Events) {
     });
 
     function resize() {
-        fire(SplatUpdateFocal);
-        fire(SplatUpdateViewport);
+        setTimeout(() => {
+            if (!disposed) {
+                fire(SplatUpdateFocal);
+                fire(SplatUpdateViewport);
+            }
+        });
     }
     window.addEventListener('resize', resize);
 
@@ -660,7 +738,6 @@ export function setupSplatMesh(events: Events) {
         fire(SplatUpdateTransitionEffect, opts.transitionEffect); // 设定特效类型
         if (opts.transitionEffect === TransitionEffects.ModelCenterCirccle) {
             // 以模型中心过渡
-
             while (arySwitchProcess.length) arySwitchProcess.pop().stop = true; // 已有的都停掉
             const currentLightRadius = maxRadius * 0.001;
             let switchProcess = { currentPointMode: opts.pointcloudMode, stepRate: 0.0015, currentLightRadius, stop: false };
@@ -691,9 +768,11 @@ export function setupSplatMesh(events: Events) {
             fire(SplatUpdatePerformanceAct, performance.now());
             fire(SplatUpdateCurrentLightRadius, 0.1);
             setTimeout(() => {
-                fire(SplatUpdatePointMode); // 根据开始时的点云显示模式进行切换
-                fire(SplatUpdateCurrentLightRadius, 0); // 停止过渡
-                fire(OnSmallSceneShowDone, showMark);
+                if (!disposed) {
+                    fire(SplatUpdatePointMode); // 根据开始时的点云显示模式进行切换
+                    fire(SplatUpdateCurrentLightRadius, 0); // 停止过渡
+                    fire(OnSmallSceneShowDone, showMark);
+                }
             }, 500);
         }
     });
@@ -701,7 +780,7 @@ export function setupSplatMesh(events: Events) {
     on(
         OnSmallSceneShowDone,
         (showMark: boolean = false) => {
-            if (fire(IsBigSceneMode)) return;
+            if (disposed || fire(IsBigSceneMode)) return;
             fire(SplatUpdateParticleMode, 0); // 若有，停止粒子加载效果
             showMark && fire(GetOptions).viewerEvents?.fire(MarkUpdateVisible);
             fire(GetOptions).viewerEvents?.fire(FlyOnce);
@@ -748,17 +827,19 @@ export function setupSplatMesh(events: Events) {
         };
     });
 
-    const worker: Worker = fire(GetWorker);
-    worker.onmessage = e => {
+    const sortWorker: Worker = fire(GetSortWorker);
+    sortWorker.onmessage = e => {
         const data: any = e.data;
-        if (data[WkSplatIndex]) {
+        if (data[WkA90DepthIndex]) {
             bucketBits = data[WkBucketBits];
             sortType = data[WkSortType];
-            const ui32s: Uint32Array = data[WkSplatIndex];
+            const ui32s: Uint32Array = data[WkDepthIndex];
             fire(SplatUpdateSplatIndex, ui32s, data[WkIndex], data[WkSortTime], data[WkSortStartTime], data[WkRenderSplatCount]);
-            ui32s.length && worker.postMessage({ [WkSplatIndexDone]: ui32s }, [ui32s.buffer]);
-        } else if (data[WkSorterXyzDone]) {
-            fire(PushCacheXyzs, new Float32Array(data[WkSorterXyzDone].buffer));
+            ui32s.length && sortWorker.postMessage({ [WkA09BackDepthIndex]: true, [WkDepthIndex]: ui32s }, [ui32s.buffer]);
+        } else if (data[WkA90BackXyz]) {
+            fire(NotifyWkA01BackXyz, new Float32Array(data[WkXyz].buffer));
+        } else if (data[WkA90BackXyzIndex]) {
+            fire(NotifyWkA01BackXyzIndex, new Uint32Array(data[WkXyzIndex].buffer));
         }
     };
 
@@ -767,28 +848,6 @@ export function setupSplatMesh(events: Events) {
             currentMaxRadius = dataCurrentRadius;
             maxRadius = dataMaxRadius;
         }
-        fire(SplatUpdateTexture, texture);
+        fire(SplatUpdateSglTexture, texture);
     });
-    function notifyWorkerTextureReady(texture: SplatTexdata) {
-        const xyz = texture.xyz.slice(0);
-        worker.postMessage(
-            {
-                [WkTextureReady]: true,
-                [WkXyz]: xyz,
-                [WkWatermarkCount]: texture.watermarkCount,
-                [WkIndex]: texture.index,
-                [WkVersion]: texture.version,
-                [WkRenderSplatCount]: texture.renderSplatCount,
-                [WkVisibleSplatCount]: texture.visibleSplatCount,
-                [WkModelSplatCount]: texture.modelSplatCount,
-                [WkMinX]: texture.minX,
-                [WkMaxX]: texture.maxX,
-                [WkMinY]: texture.minY,
-                [WkMaxY]: texture.maxY,
-                [WkMinZ]: texture.minZ,
-                [WkMaxZ]: texture.maxZ,
-            },
-            [xyz.buffer],
-        );
-    }
 }

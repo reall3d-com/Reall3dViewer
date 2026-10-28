@@ -2,7 +2,7 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Matrix4, PerspectiveCamera, Vector3, Scene, Quaternion, Intersection } from 'three';
-import { Events } from './Events';
+import { Events } from '../events/Events';
 import {
     GetCanvas,
     StopAutoRotate,
@@ -60,20 +60,20 @@ import {
     RaycasterRayIntersectMarks,
     IntersectsPhysicsObjects,
     OnCanvasMouseMove,
-} from './EventConstants';
+} from '../events/EventConstants';
 import { Reall3dViewerOptions } from '../viewer/Reall3dViewerOptions';
 import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
-import { CameraControls } from '../controls/CameraControls';
 import { CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
 import { MarkDistanceLine } from '../meshs/mark/MarkDistanceLine';
 import { MarkMultiLines } from '../meshs/mark/MarkMultiLines';
 import { MarkSinglePoint } from '../meshs/mark/MarkSinglePoint';
 import { MarkMultiPlans } from '../meshs/mark/MarkMulitPlans';
 import { MarkCirclePlan } from '../meshs/mark/MarkCirclePlan';
-import { globalEv } from './GlobalEV';
-import { QualityLevels } from '../utils/consts/GlobalConstants';
+import { globalEv } from '../events/GlobalEV';
+import { QualityLevels } from '../utils/GlobalConstants';
 import { CSS2DRenderer } from 'three/examples/jsm/Addons.js';
 import { Mark3DSingleTag } from '../meshs/mark/Mark3DSingleTag';
+import { CameraControls } from './SetupCameraControls';
 
 class MouseState {
     public down: number = 0;
@@ -94,9 +94,9 @@ class MouseState {
     public isPinching = false; // 是否正在双指缩放
 }
 
-export function setupEventListener(events: Events) {
-    const on = (key: number, fn?: Function, multiFn?: boolean): Function | Function[] => events.on(key, fn, multiFn);
-    const fire = (key: number, ...args: any): any => events.fire(key, ...args);
+export function setupViewerEventListener(events: Events) {
+    const on = (key: number | string, fn?: Function, multiFn?: boolean): Function | Function[] => events.on(key, fn, multiFn);
+    const fire = (key: number | string, ...args: any): any => events.fire(key, ...args);
     const canvas: HTMLCanvasElement = fire(GetCanvas);
     let keySet: Set<string> = new Set();
 
@@ -285,6 +285,15 @@ export function setupEventListener(events: Events) {
             return new Vector3(rs[0].x, rs[0].y, rs[0].z);
         } else {
             splats.length && splats[0].fire(SplatUpdateMarkPoint, 0, 0, 0, false);
+        }
+        return null;
+    });
+
+    // 彩色点云需要按点检测时使用
+    on('SelectRgbPlyMarkPoint', async (x: number, y: number) => {
+        const rs: Vector3[] = await fire('IntersectRgbPlyPoints', x, y);
+        if (rs.length) {
+            return new Vector3(rs[0].x, rs[0].y, rs[0].z);
         }
         return null;
     });
@@ -726,13 +735,16 @@ export function setupEventListener(events: Events) {
         const planeNormal = controls.object.up.clone().normalize();
 
         // 将方向向量投影到以up向量为法线的平面上
-        const projectedDirection = new Vector3().copy(direction).projectOnPlane(planeNormal).normalize();
+        const projectedDirection = new Vector3().copy(direction).normalize().projectOnPlane(planeNormal).normalize();
 
         const moveVector = projectedDirection.multiplyScalar(step);
 
+        const originalDamping = controls.enableDamping;
+        controls.enableDamping = false;
         controls.object.position.add(moveVector);
         controls.target.add(moveVector);
         controls.update();
+        controls.enableDamping = originalDamping;
     }
     // 左移
     function moveLeft(controls, step = 0.2) {

@@ -10,9 +10,11 @@ interface SplatTexdata {
     /** 纹理版本（毫秒时间戳） */
     version?: number;
     /** 纹理数据 */
-    txdata?: Uint32Array;
+    texdata?: Uint32Array;
     /** 坐标数据 */
     xyz?: Float32Array;
+    /** 高斯点纹理索引 */
+    xyzIndex?: Uint32Array;
     /** 纹理数据就绪标志 */
     textureReady?: boolean;
     /** 纹理数据就绪时间点 */

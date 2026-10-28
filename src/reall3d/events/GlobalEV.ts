@@ -16,7 +16,7 @@ export const globalEv: Events = (() => {
     let bgAudioStartTime = 0;
     let bgAudioStopTime = 0;
 
-    ev.on(PlaytBgAudio, async (mp3: string = '', isLoop: boolean = false, volume: number = 0.5): Promise<boolean> => {
+    ev.on(PlaytBgAudio, async (mp3: string = '', isLoop: boolean = false, volume: number = 0.3): Promise<boolean> => {
         bgAudioStartTime = performance.now();
         const audioBg = getBackgroundAudio();
 

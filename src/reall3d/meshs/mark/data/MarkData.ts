@@ -6,6 +6,8 @@ export interface MarkData {
     type?: 'MarkDistanceLine' | 'MarkSinglePoint' | 'MarkMultiLines' | 'MarkMultiPlans' | 'MarkCirclePlan' | 'MarkSingleTag' | 'Mark3DSingleTag' | undefined;
     /** 名称（样式类名等标识用） */
     name?: string;
+    /** 缩放 */
+    scale?: number;
     /** 是否可相交检测（默认false） */
     intersectable?: boolean;
 }

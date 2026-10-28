@@ -3,15 +3,7 @@
 // ==============================================
 import { Vector3 } from 'three';
 import { clipUint8, computeCompressionRatio, DecompressGzip, decompressZstd } from '../../utils/CommonUtils';
-import {
-    MaxProcessCnt,
-    SH_C0,
-    SplatDataSize32,
-    SpxBlockFormatData20,
-    SpxBlockFormatSH1,
-    SpxBlockFormatSH2,
-    SpxBlockFormatSH3,
-} from '../../utils/consts/GlobalConstants';
+import { isMobile, MaxProcessCnt, SH_C0, SpxBlockFormatData20, SpxBlockFormatSH1, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSpxBlockData } from '../wasm/WasmParser';
 
@@ -439,13 +431,13 @@ export async function loadSpz(model: SplatModel) {
     }
 
     function setBlockSplatData(header: SpzHeader, model: SplatModel, data: Uint8Array) {
-        let dataCnt = data.byteLength / SplatDataSize32;
+        let dataCnt = data.byteLength / 32;
         const maxSplatDataCnt = Math.min(model.fetchLimit, header.numPoints);
         if (model.dataSplatCount + dataCnt > maxSplatDataCnt) {
             dataCnt = maxSplatDataCnt - model.dataSplatCount; // 丢弃超出限制的部分
-            model.splatData.set(data.subarray(0, dataCnt * SplatDataSize32), model.dataSplatCount * SplatDataSize32);
+            model.splatData.set(data.subarray(0, dataCnt * 32), model.dataSplatCount * 32);
         } else {
-            model.splatData.set(data, model.dataSplatCount * SplatDataSize32);
+            model.splatData.set(data, model.dataSplatCount * 32);
         }
 
         // 计算当前半径

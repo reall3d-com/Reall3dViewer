@@ -11,385 +11,16 @@ import {
     Matrix4,
     Mesh,
     MeshBasicMaterial,
-    Object3D,
-    PerspectiveCamera,
     Plane,
     ShaderChunk,
     Vector3,
     WebGLRenderer,
-    WebGLRenderTarget,
 } from 'three';
-import { Events } from '../events/Events';
-import {
-    Vector3ToString,
-    IsFetching,
-    RunLoopByFrame,
-    RunLoopByTime,
-    GetOptions,
-    OnFetchStop,
-    OnFetchStart,
-    Information,
-    IsDebugMode,
-    IsSmallSceneRenderDataReady,
-    OnTextureReadySplatCount,
-    OnFetching,
-    EncodeBase64,
-    DecodeBase64,
-    GetCanvasSize,
-    GetCanvas,
-    TraverseDisposeAndClear,
-    IsCameraChangedNeedLoadData,
-    GetCamera,
-    CommonUtilsDispose,
-    ComputeTextureWidthHeight,
-    GetRenderer,
-    UpdateFetchStatus,
-    IsLodFetching,
-    StopBgAudio,
-    OnViewerDispose,
-    GetScene,
-    CaptureScreenshot,
-    SetCursor,
-    LoadCircularAudioMask,
-} from '../events/EventConstants';
-import { QualityLevels, ViewerVersion } from './consts/GlobalConstants';
 import { XzReadableStream } from 'xz-decompress';
 import { unzipSync } from 'fflate';
 import { SpxHeader } from '../modeldata/ModelData';
 import { SplatTileNode } from '../modeldata/SplatTiles';
-import { globalEv } from '../events/GlobalEV';
-import CircularAudioMask, { CircularAudioMaskOptions } from '../media/CircularAudioMask';
 import { ZstdInit } from '@oneidentity/zstd-js/wasm/decompress';
-
-export function setupCommonUtils(events: Events) {
-    let disposed: boolean = false;
-    const on = (key: number, fn?: Function, multiFn?: boolean): Function | Function[] => events.on(key, fn, multiFn);
-    const fire = (key: number, ...args: any): any => events.fire(key, ...args);
-
-    let circularAudioMask: CircularAudioMask;
-    on(LoadCircularAudioMask, (opt: CircularAudioMaskOptions) => (circularAudioMask = new CircularAudioMask(opt)));
-
-    on(IsDebugMode, () => fire(GetOptions).debugMode);
-
-    on(CommonUtilsDispose, () => (disposed = true));
-    on(
-        OnViewerDispose,
-        () => {
-            globalEv.fire(StopBgAudio);
-            circularAudioMask?.dispose();
-            circularAudioMask = null;
-        },
-        true,
-    );
-
-    on(ComputeTextureWidthHeight, (splatCount: number) => {
-        const maxTextureSize: number = (fire(GetRenderer) as WebGLRenderer).capabilities.maxTextureSize;
-        const totalPixels = 2 * splatCount;
-        let texwidth = 1024;
-        while (texwidth * maxTextureSize < totalPixels) {
-            texwidth *= 2;
-        }
-        texwidth = Math.min(texwidth, maxTextureSize / 2);
-        let texheight = Math.ceil(totalPixels / texwidth);
-        const texdepth = 4;
-        const texheightary = Math.ceil(texheight / texdepth);
-        texheight = texheightary * texdepth;
-        return { texwidth, texheight, texdepth, texheightary };
-    });
-
-    // 按帧率执行
-    let iFrameCount: number = 0;
-    (function countFrame() {
-        iFrameCount++;
-        !disposed && requestAnimationFrame(countFrame);
-    })();
-
-    on(RunLoopByFrame, (fnRun: Function, fnIsContinue: Function = null, div: number = 0) => {
-        const run = () => {
-            if (!disposed) {
-                div > 0 ? !(iFrameCount % div) && fnRun(iFrameCount) : fnRun(iFrameCount);
-                fnIsContinue && fnIsContinue() && requestAnimationFrame(run);
-            }
-        };
-        run();
-    });
-
-    // 默认按每秒50次执行
-    on(RunLoopByTime, (fnRun: Function, fnIsContinue: Function = null, delay: number = 20) => {
-        const run = () => {
-            if (!disposed) {
-                fnRun();
-                fnIsContinue && fnIsContinue() && setTimeout(run, delay);
-            }
-        };
-        run();
-    });
-
-    let loading = false;
-    let renderSplatCount: number = 0;
-    let textureReadySplatCount: number = 0;
-    on(IsLodFetching, () => loading);
-    on(UpdateFetchStatus, (isLoading: boolean) => {
-        loading = isLoading;
-        if (isLoading) {
-            (async () => document.querySelector('#gsviewer .logo')?.classList.add('loading'))();
-        } else {
-            (async () => document.querySelector('#gsviewer .logo')?.classList.remove('loading'))();
-        }
-        (async () => {
-            const wrap: HTMLElement = document.querySelector('#gsviewer #progressBarWrap');
-            wrap && wrap.style.display != 'none' && (wrap.style.display = 'none');
-        })();
-    });
-    on(OnFetchStart, () => {
-        loading = true;
-
-        (async () => {
-            const wrap: HTMLElement = document.querySelector('#gsviewer #progressBarWrap');
-            if (wrap) {
-                wrap.style.display = 'block';
-                const dom: HTMLElement = document.querySelector('#gsviewer #progressBar');
-                dom && (dom.style.width = `0%`);
-            }
-        })();
-        (async () => document.querySelector('#gsviewer .logo')?.classList.add('loading'))();
-        // @ts-ignore
-        parent?.onProgress && parent.onProgress(0.001, '0.001%');
-        // @ts-ignore
-        window.onProgress && window.onProgress(0.001, '0.001%');
-    });
-    on(OnFetchStop, (totalRenderSplatCount: number) => {
-        totalRenderSplatCount && (renderSplatCount = totalRenderSplatCount);
-        loading = false;
-
-        if (totalRenderSplatCount !== undefined) {
-            (async () => {
-                const wrap: HTMLElement = document.querySelector('#gsviewer #progressBarWrap');
-                wrap && (wrap.style.display = 'none');
-            })();
-            (async () => document.querySelector('#gsviewer .logo')?.classList.remove('loading'))();
-
-            // @ts-ignore
-            parent?.onProgress && parent.onProgress(0, '100%', 9); // 用自定义的 9 代表完全加载完成
-            // @ts-ignore
-            window.onProgress && window.onProgress(0, '100%', 9); // 用自定义的 9 代表完全加载完成
-        }
-    });
-    on(OnFetching, (per: number) => {
-        loading = true;
-        (async () => {
-            const dom: HTMLElement = document.querySelector('#gsviewer #progressBar');
-            dom && (dom.style.width = `${per}%`);
-        })();
-        // @ts-ignore
-        parent?.onProgress && parent.onProgress(per, `${per}%`);
-        // @ts-ignore
-        window.onProgress && window.onProgress(per, `${per}%`);
-    });
-    on(IsFetching, () => loading);
-    on(OnTextureReadySplatCount, (renderCount: number) => {
-        textureReadySplatCount = renderCount;
-    });
-    on(IsSmallSceneRenderDataReady, () => {
-        return !loading && renderSplatCount && textureReadySplatCount >= renderSplatCount;
-    });
-
-    let oSize = null;
-    on(GetCanvasSize, (force = false) => {
-        if (!force && oSize) return oSize;
-        const root: HTMLElement = (fire(GetCanvas) as HTMLCanvasElement).parentElement;
-        const rect = root.getBoundingClientRect();
-        return (oSize = { width: rect.width, height: rect.height, left: rect.left, top: rect.top });
-    });
-
-    on(Vector3ToString, (v: Vector3): string => {
-        let x = v.x.toFixed(3).split('.');
-        let y = v.y.toFixed(3).split('.');
-        let z = v.z.toFixed(3).split('.');
-        if (x[1] === '000' || x[1] === '00000') x[1] = '0';
-        if (y[1] === '000' || y[1] === '00000') y[1] = '0';
-        if (z[1] === '000' || z[1] === '00000') z[1] = '0';
-        return `${x.join('.')}, ${y.join('.')}, ${z.join('.')}`;
-    });
-
-    on(EncodeBase64, (str: string): string => btoa(str));
-    on(DecodeBase64, (str: string): string => atob(str));
-
-    const epsilon = 0.001;
-    let lastLoadDataPosition: Vector3 = new Vector3();
-    let lastLoadDataDirection2: Vector3 = new Vector3();
-    let lastLoadDataFov: number = 0;
-    on(IsCameraChangedNeedLoadData, () => {
-        const camera: PerspectiveCamera = fire(GetCamera);
-        const fov = camera.fov;
-        const position = camera.position.clone();
-        const direction = camera.getWorldDirection(new Vector3());
-        if (
-            Math.abs(lastLoadDataFov - fov) < epsilon &&
-            Math.abs(position.x - lastLoadDataPosition.x) < epsilon &&
-            Math.abs(position.y - lastLoadDataPosition.y) < epsilon &&
-            Math.abs(position.z - lastLoadDataPosition.z) < epsilon &&
-            Math.abs(direction.x - lastLoadDataDirection2.x) < epsilon &&
-            Math.abs(direction.y - lastLoadDataDirection2.y) < epsilon &&
-            Math.abs(direction.z - lastLoadDataDirection2.z) < epsilon
-        ) {
-            return false;
-        }
-
-        lastLoadDataFov = fov;
-        lastLoadDataPosition = position;
-        lastLoadDataDirection2 = direction;
-
-        return true;
-    });
-
-    on(TraverseDisposeAndClear, (obj3d: Object3D) => {
-        if (!obj3d) return;
-
-        const objects: any[] = [];
-        obj3d.traverse((object: any) => objects.push(object));
-        objects.forEach((object: any) => {
-            if (object.dispose) {
-                object.dispose();
-            } else {
-                object.geometry?.dispose?.();
-                object.material && object.material instanceof Array
-                    ? object.material.forEach((material: any) => material?.dispose?.())
-                    : object.material?.dispose?.();
-            }
-        });
-        obj3d.clear();
-    });
-
-    on(
-        Information,
-        async ({
-            renderSplatCount,
-            visibleSplatCount,
-            modelSplatCount,
-            fps,
-            realFps,
-            sortTime,
-            bucketBits,
-            sortType,
-            qualityLevel,
-            fov,
-            position,
-            lookUp,
-            lookAt,
-            worker,
-            scene,
-            // updateSceneData,
-            scale,
-            lodTotalCount,
-            cuts,
-            shDegree,
-        }: Partial<Record<string, any>> = {}) => {
-            if (!fire(IsDebugMode)) return;
-
-            shDegree !== undefined && setInfo('shDegree', `${shDegree}`);
-            renderSplatCount !== undefined && setInfo('renderSplatCount', `${renderSplatCount}`);
-            visibleSplatCount !== undefined && setInfo('visibleSplatCount', `${visibleSplatCount}`);
-            modelSplatCount !== undefined && setInfo('modelSplatCount', `${modelSplatCount}`);
-            // models && setInfo('models', models);
-            // renderModels !== undefined && setInfo('renderModels', renderModels);
-            fps !== undefined && setInfo('fps', fps);
-            realFps !== undefined && setInfo('realFps', `raw ${realFps}`);
-            sortTime !== undefined &&
-                setInfo('sort', `${sortTime} ms （L ${fire(GetOptions).qualityLevel || QualityLevels.Default5}, ${bucketBits || ''} B, T ${sortType || ''}）`);
-            if (cuts !== undefined) {
-                if (lodTotalCount !== undefined) {
-                    setInfo('cuts', cuts === '' ? '' : `${lodTotalCount}（${cuts} cuts）`);
-                } else {
-                    setInfo('cuts', cuts === '' ? '' : `（${cuts} cuts）`);
-                }
-            }
-            worker && setInfo('worker', `${worker}`);
-            // updateSceneData && setInfo('updateSceneData', `（up ${updateSceneData} ms）`);
-            scene && setInfo('scene', scene);
-            fov && setInfo('fov', fov);
-            position && setInfo('position', position);
-            lookUp && setInfo('lookUp', lookUp);
-            lookAt && setInfo('lookAt', lookAt);
-            lookAt && setInfo('viewer-version', ViewerVersion);
-
-            // @ts-ignore
-            let memory = performance.memory || { usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0 };
-            let strMemory = '';
-            let usedJSHeapSize = memory.usedJSHeapSize / 1024 / 1024;
-            usedJSHeapSize > 1000 ? (strMemory += (usedJSHeapSize / 1024).toFixed(2) + ' G') : (strMemory += usedJSHeapSize.toFixed(0) + ' M');
-            strMemory += ' / ';
-            let totalJSHeapSize = memory.totalJSHeapSize / 1024 / 1024;
-            totalJSHeapSize > 1000 ? (strMemory += (totalJSHeapSize / 1024).toFixed(2) + ' G') : (strMemory += totalJSHeapSize.toFixed(0) + ' M');
-            let jsHeapSizeLimit = memory.jsHeapSizeLimit / 1024 / 1024;
-            strMemory += ' / ';
-            jsHeapSizeLimit > 1000 ? (strMemory += (jsHeapSizeLimit / 1024).toFixed(2) + ' G') : (strMemory += jsHeapSizeLimit.toFixed(0) + ' M');
-            setInfo('memory', strMemory);
-
-            scale && setInfo('scale', scale);
-        },
-    );
-    async function setInfo(name: string, txt: any) {
-        let dom: HTMLDivElement = document.querySelector(`#gsviewer .debug .${name}`);
-        dom && (dom.innerText = txt);
-    }
-
-    on(CaptureScreenshot, (fileName = 'screenshot.png') => {
-        const renderer: WebGLRenderer = fire(GetRenderer);
-        const width = renderer.domElement.width;
-        const height = renderer.domElement.height;
-        const renderTarget = new WebGLRenderTarget(width, height);
-
-        renderer.setRenderTarget(renderTarget);
-        renderer.render(fire(GetScene), fire(GetCamera));
-        renderer.setRenderTarget(null);
-
-        // 读取像素数据
-        const pixels = new Uint8Array(width * height * 4);
-        renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
-
-        // 创建Canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        const imgData = ctx!.createImageData(width, height);
-
-        // 像素倒序（WebGL原点和Canvas不同）
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const destIdx = (y * width + x) * 4;
-                const srcIdx = ((height - y - 1) * width + x) * 4; // 镜像
-                imgData.data[destIdx] = pixels[srcIdx];
-                imgData.data[destIdx + 1] = pixels[srcIdx + 1];
-                imgData.data[destIdx + 2] = pixels[srcIdx + 2];
-                imgData.data[destIdx + 3] = pixels[srcIdx + 3];
-            }
-        }
-        ctx!.putImageData(imgData, 0, 0);
-
-        const dataURL = canvas.toDataURL('image/png');
-
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
-
-    let varCursor = 'default';
-    on(SetCursor, (cursor: 'pointer' | 'default' | 'grab' | 'grabbing' | 'move' | 'crosshair' | 'wait' | 'not-allowed' | 'none' = 'default') => {
-        if (varCursor === cursor) return;
-        varCursor = cursor;
-        const canvas: HTMLCanvasElement = fire(GetCanvas);
-        canvas && (canvas.style.cursor = cursor);
-    });
-}
-
-export const shaderChunk = ShaderChunk;
-
-export const decodeB64 = atob;
 
 /** 是否7天内 */
 export function isNeedReload(yyyymmdd: number = 0): boolean {
@@ -399,6 +30,10 @@ export function isNeedReload(yyyymmdd: number = 0): boolean {
 }
 
 export const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+export const shaderChunk = ShaderChunk;
+
+export const decodeB64 = atob;
 
 export function clipUint8(value: number): number {
     return value < 0 ? 0 : value > 255 ? 255 : value | 0;
@@ -870,11 +505,6 @@ export function isInFrustum(camera: Camera, point: Vector3) {
     return frustum.containsPoint(point);
 }
 
-// spx v3
-export function isLargeSpx(header: SpxHeader) {
-    return ((header?.Flags || 0) & 0b1) > 0;
-}
-
 export function isInverted(header: SpxHeader) {
     return ((header?.Flags || 0) & 0b10000000) > 0;
 }
@@ -910,7 +540,7 @@ export function computeSplatNodeCameraDistance(cameraPosition: Vector3, node: Sp
 
 export function getUrl(url: string, baseUrl: string): string {
     try {
-        return baseUrl ? new URL(url, baseUrl).href : url;
+        return url?.startsWith('blob:') ? baseUrl : baseUrl ? new URL(url, baseUrl).href : url;
     } catch (e) {
         return url;
     }
@@ -926,11 +556,26 @@ export function addDynamicStyles(css: string) {
 }
 
 export function sleep(msTime: number = 0) {
-    return new Promise(resolve => setTimeout(resolve, msTime));
+    return new Promise<number>(resolve => setTimeout(() => resolve(msTime), msTime));
 }
 
 export function saveUint8ArrayAsFile(uint8Array: Uint8Array, fileName: string) {
     const blob = new Blob([uint8Array as any], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+export function saveJsonAsFile(json: object | string, fileName: string = 'jsonfile.json') {
+    const jsonStr = typeof json === 'string' ? JSON.stringify(JSON.parse(json), null, 2) : JSON.stringify(json, null, 2);
+
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');
@@ -994,6 +639,16 @@ function encodeSplatRotation(f: number): number {
     return Math.max(0, Math.min(255, Math.floor(f * 128.0 + 128.0)));
 }
 
+export function calcPartDepthRange(width: number, height: number, splatOffset: number, splatCount: number) {
+    const bytesPerPixel = 16; // RGBA32UI 每个像素固定 16 字节
+    const pixelsPerDepthLayer = width * height; // 单个深度层的像素数量
+    const startPixel = (splatOffset * 32) / bytesPerPixel; // 起始像素索引
+    const endPixel = startPixel + (splatCount * 32) / bytesPerPixel - 1; // 结束像素索引
+    const startDepth = Math.floor(startPixel / pixelsPerDepthLayer); // 起始深度层
+    const endDepth = Math.floor(endPixel / pixelsPerDepthLayer); // 结束深度层
+    return { startDepth, endDepth };
+}
+
 // 创建扇形三角面网格
 export function createTriangleMesh(points: number[], options = {}): Mesh {
     const config = Object.assign(
@@ -1031,6 +686,21 @@ export function createTriangleMesh(points: number[], options = {}): Mesh {
     return mesh;
 }
 
+export function extractSplatXYZ(downloadData: Uint8Array): Float32Array {
+    const pointCount = downloadData.length / 32;
+    const xyz = new Float32Array(pointCount * 3);
+    const f32Source = new Float32Array(downloadData.buffer, downloadData.byteOffset, pointCount * 8);
+
+    for (let i = 0; i < pointCount; i++) {
+        const srcIdx = i * 8;
+        const tgtIdx = i * 3;
+        xyz[tgtIdx] = f32Source[srcIdx]; // x
+        xyz[tgtIdx + 1] = f32Source[srcIdx + 1]; // y
+        xyz[tgtIdx + 2] = f32Source[srcIdx + 2]; // z
+    }
+    return xyz;
+}
+
 let zstdSimple: any;
 let initPromise: Promise<void> | null = null;
 
@@ -1049,6 +719,14 @@ export async function decompressZstd(zstdBytes: Uint8Array): Promise<Uint8Array>
     return zstdSimple.decompress(zstdBytes);
 }
 
+export function allocTest(renderer: WebGLRenderer, width: number, height: number, layers: number) {
+    const gl = renderer.getContext() as WebGL2RenderingContext;
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA32UI, width, height, layers, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT, null);
+    return gl.getError() === gl.NO_ERROR;
+}
+
 // 不含header_end
 export function isPointCloudPly(header: string) {
     const oSet = new Set<string>(['x', 'y', 'z', 'red', 'green', 'blue']);
@@ -1062,6 +740,8 @@ export interface RgbPly {
     count: number;
     plyBytes: Uint8Array;
     xyzs: Float32Array;
+    minY: number;
+    maxY: number;
 }
 
 export async function parseRgbPly(webpBts: Uint8Array): Promise<RgbPly> {
@@ -1096,6 +776,8 @@ export async function parseRgbPly(webpBts: Uint8Array): Promise<RgbPly> {
     const c8 = count * 8;
     const c12 = count * 12;
 
+    let minY: number = Number.MAX_VALUE;
+    let maxY: number = -Number.MAX_VALUE;
     const xyzs = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
         const i4 = i * 4;
@@ -1123,6 +805,8 @@ export async function parseRgbPly(webpBts: Uint8Array): Promise<RgbPly> {
         xyzs[i * 3] = tempF32[0];
         plyBytes.set(tempU8, base);
         tempF32[0] = fy / 4096;
+        minY = Math.min(minY, tempF32[0]);
+        maxY = Math.max(maxY, tempF32[0]);
         xyzs[i * 3 + 1] = tempF32[0];
         plyBytes.set(tempU8, base + 4);
         tempF32[0] = fz / 4096;
@@ -1134,7 +818,7 @@ export async function parseRgbPly(webpBts: Uint8Array): Promise<RgbPly> {
         plyBytes[base + 14] = xyzrgbBts[c12 + i4 + 2];
     }
 
-    return { count, plyBytes, xyzs };
+    return { count, plyBytes, xyzs, minY, maxY };
 }
 
 export function downloadUint8ArrayFile(uint8Array, fileName = 'data.bin') {
@@ -1145,6 +829,89 @@ export function downloadUint8ArrayFile(uint8Array, fileName = 'data.bin') {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+export class Queue<T> {
+    private readonly ary: T[]; // 队列存储数组
+    private inIdx = 0; // 入队下标
+    private outIdx = 0; // 出队下标
+    private maxSize: number; // 队列最大容量
+    private cnt = 0; // 当前元素数量
+
+    constructor(size = 32) {
+        this.maxSize = Math.max(32, Math.min(size | 0, 10240));
+        this.ary = new Array(this.maxSize); // 必须预先分配固定长度数组
+    }
+
+    /** 入队 */
+    public add(item: T): boolean {
+        if (item === undefined) return false;
+
+        // 队列满了，不能添加！防止覆盖
+        if (this.isFull()) {
+            return false;
+        }
+
+        this.ary[this.inIdx] = item;
+        this.inIdx = (this.inIdx + 1) % this.maxSize; // 环形进位
+        this.cnt++; // 记录元素数量
+        return true;
+    }
+
+    /** 出队 */
+    public get(): T | undefined {
+        // 队列空，直接返回
+        if (this.isEmpty()) {
+            return undefined;
+        }
+
+        const rs = this.ary[this.outIdx];
+
+        this.ary[this.outIdx] = undefined; // 清空释放引用
+        this.outIdx = (this.outIdx + 1) % this.maxSize;
+        this.cnt--;
+
+        return rs;
+    }
+
+    /** 查看队首元素 */
+    public peek(): T | undefined {
+        if (this.isEmpty()) return undefined;
+        return this.ary[this.outIdx];
+    }
+
+    /** 队列是否已满 */
+    public isFull(): boolean {
+        return this.cnt === this.maxSize;
+    }
+
+    /** 队列是否为空 */
+    public isEmpty(): boolean {
+        return this.cnt === 0;
+    }
+
+    /** 当前元素数量 */
+    public get count(): number {
+        return this.cnt;
+    }
+
+    /** 最大容量 */
+    public get capacity(): number {
+        return this.maxSize;
+    }
+}
+
+let hdlSpeedTimeout: any;
+export function showSpeedText(txt: string) {
+    hdlSpeedTimeout && clearInterval(hdlSpeedTimeout);
+    const div: HTMLDivElement = document.querySelector('.speed-text');
+    if (div) {
+        div.innerText = txt;
+        div.classList.remove('hide');
+    }
+    hdlSpeedTimeout = setTimeout(() => {
+        div?.classList.add('hide');
+    }, 1000);
 }
 
 export function isString(val: any): boolean {

@@ -1,16 +1,12 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-export const ViewerVersion = 'v2.6-dev'; // Reall3dViewer 版本
+export const ViewerVersion = 'v3.0.0'; // Reall3dViewer 版本
 
+export const isCloudDevice = /CloudDevice/i.test(navigator.userAgent);
 export const isMobile =
     /Mobi|Android|Phone|iPod|webOS|BlackBerry|Mini/i.test(navigator.userAgent) || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 export const HalfChars = 'QWERTYUIOPLKJHGFDSAZXCVBNM1234567890qwertyuioplkjhgfdsazxcvbnm`~!@#$%^&*()-_=+\\|]}[{\'";::,<.>//? \t';
-export const BlankingTimeOfSmallScene = isMobile ? 600 : 300;
-export const BlankingTimeOfLargeScene = isMobile ? 300 : 100;
-export const SpxHeaderSize = 128;
-export const DataSize32 = 32;
-export const SplatDataSize32 = 32;
 export const SplatDataSize20 = 20;
 export const SplatDataSize16 = 16;
 export const WasmBlockSize: number = 64 * 1024;
@@ -100,12 +96,10 @@ export enum QualityLevels {
 export enum SortTypes {
     /** 默认，按视图投影矩阵计算z-depth进行全量排序 */
     Default1 = 1,
-    /** 按相机方向计算z-depth进行排序，剔除背后和远端数据，仅渲染近端，有遮挡只能看到近端场景时适用 */
+    /** 径向排序，环顾四周情景较多的时候适用 */
+    Radial2 = 2,
+    /** 按相机方向计算z-depth进行排序，剔除背后和远端数据，仅渲染近端，有遮挡只能看到近端场景时适用（大场景自适应数据剔除，不适用此类型） */
     ZdepthFrontNearest2010 = 2010,
-    /** 按相机方向计算z-depth进行排序，剔除背后数据 */
+    /** 按相机方向计算z-depth进行排序，剔除背后数据（大场景自适应数据剔除，不适用此类型） */
     ZdepthFront2011 = 2011,
-    /** 按相机方向计算z-depth进行排序，剔除背后数据，分近端远端两段排序，用以提高近端渲染精度 */
-    ZdepthFrontNearFar2012 = 2012,
-    /** 按相机方向计算z-depth进行排序，不剔除数据，分近端远端两段排序，用以提高近端渲染精度 */
-    ZdepthFullNearFar2112 = 2112,
 }

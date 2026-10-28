@@ -1,10 +1,9 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import { data190To19, data10190To10019, sh123To1, sh123To2, sh123To3, webpToRgba, decodeWebpBlockDatas, sleep } from '../../utils/CommonUtils';
+import { data190To19, data10190To10019, sh123To1, sh123To2, sh123To3, webpToRgba, data220Decode, decodeWebpBlockDatas, sleep } from '../../utils/CommonUtils';
 import {
     SplatDataSize16,
-    SplatDataSize32,
     SpxBlockFormatData190,
     SpxBlockFormatData10190,
     SpxBlockFormatSH1,
@@ -17,7 +16,7 @@ import {
     SpxBlockFormatData220,
     SpxBlockFormatData230,
     MaxProcessCnt,
-} from '../../utils/consts/GlobalConstants';
+} from '../../utils/GlobalConstants';
 import { SpxHeader } from '../ModelData';
 
 const WasmDataV1 = `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`;
@@ -27,6 +26,7 @@ const WasmOpen = `AGFzbQEAAAAADwhkeWxpbmsuMAEEAAAAAAE+CWAEf39/fwBgAX0BfWAAAGADf3
 
 let splatWasmMemory: Uint8Array;
 let splatDataParser: Function;
+let parseSplatRunning = false;
 
 export async function parseSpxHeader(header: Uint8Array): Promise<SpxHeader> {
     const ui32s = new Uint32Array(header.buffer);
@@ -155,7 +155,7 @@ async function parseBlockData(splatCount: number, blockFormat: number, data: Uin
     const wasms = [WasmOpen, WasmDataV1, WasmDataV2, WasmDataV3];
     const idx = blockFormat < 65536 ? 0 : spxVer;
 
-    const resultByteLength = splatCount * (isSh ? SplatDataSize16 : SplatDataSize32);
+    const resultByteLength = splatCount * (isSh ? SplatDataSize16 : 32);
     const wasmModule = WebAssembly.compile(Uint8Array.from(atob(wasms[idx]), c => c.charCodeAt(0)).buffer);
     const blockCnt: number = Math.ceil((resultByteLength + data.byteLength) / WasmBlockSize) + 1;
     const memory = new WebAssembly.Memory({ initial: blockCnt, maximum: blockCnt });
@@ -169,13 +169,12 @@ async function parseBlockData(splatCount: number, blockFormat: number, data: Uin
     return { splatCount, blockFormat, success: true, datas: wasmMemory.slice(0, resultByteLength), isSplat, isSh, isSh1, isSh2, isSh3 };
 }
 
-let running = false;
 export async function parseSplatToTexdata(data: Uint8Array, splatCount: number): Promise<Uint8Array> {
-    if (running) {
-        while (running) await sleep(1);
+    if (parseSplatRunning) {
+        while (parseSplatRunning) await sleep(1);
         return parseSplatToTexdata(data, splatCount);
     }
-    running = true;
+    parseSplatRunning = true;
 
     if (!splatDataParser) {
         const wasmModule = WebAssembly.compile(Uint8Array.from(atob(WasmOpen), c => c.charCodeAt(0)).buffer);
@@ -193,13 +192,18 @@ export async function parseSplatToTexdata(data: Uint8Array, splatCount: number):
     const code: number = splatDataParser(0, splatCount);
     if (code) {
         console.error('splat data parser failed:', code);
-        running = false;
+        parseSplatRunning = false;
         return new Uint8Array(0);
     }
 
     const rs = splatWasmMemory.slice(0, splatCount * 32);
-    running = false;
+    parseSplatRunning = false;
     return rs;
+}
+
+export function clearSplatWasmMemory() {
+    splatDataParser = null;
+    splatWasmMemory = null;
 }
 
 export async function parseWordToTexdata(x: number, y0z: number, isY: boolean = true, isNgativeY: boolean = true): Promise<Uint8Array> {
@@ -214,7 +218,7 @@ export async function parseWordToTexdata(x: number, y0z: number, isY: boolean = 
     f32s[0] = x;
     isY ? (f32s[1] = ngativeY * y0z) : (f32s[2] = ngativeY * y0z);
     dataSplat(0, isY ? 1 : 0);
-    return wasmMemory.slice(0, SplatDataSize32);
+    return wasmMemory.slice(0, 32);
 }
 
 function expf(v: number) {

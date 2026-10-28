@@ -55,22 +55,17 @@ export interface SplatMeshOptions {
      */
     pointcloudMode?: boolean;
 
-    /**
-     * Maximum number of Gaussians to render on mobile devices,
-     * Can be updated dynamically via viewer.options()
-     */
-    maxRenderCountOfMobile?: number;
+    // /**
+    //  * Maximum number of Gaussians to render on mobile devices,
+    //  * Can be updated dynamically via viewer.options()
+    //  */
+    // maxRenderCountOfMobile?: number;
 
-    /**
-     * Maximum number of Gaussians to render on PC,
-     * Can be updated dynamically via viewer.options()
-     */
-    maxRenderCountOfPc?: number;
-
-    /**
-     * Brightness scale factor; defaults to 1.0
-     */
-    lightFactor?: number;
+    // /**
+    //  * Maximum number of Gaussians to render on PC,
+    //  * Can be updated dynamically via viewer.options()
+    //  */
+    // maxRenderCountOfPc?: number;
 
     /**
      * Whether to display a watermark; defaults to false
@@ -112,25 +107,20 @@ export interface SplatMeshOptions {
      */
     transitionEffect?: TransitionEffects;
 
-    /**
-     * 最小可渲染直径像素
-     */
-    minPixelDiameter?: number;
+    // /**
+    //  * 最小可渲染直径像素
+    //  */
+    // minPixelDiameter?: number;
 
-    /**
-     * 最大直径像素
-     */
-    maxPixelDiameter?: number;
+    // /**
+    //  * 最大直径像素
+    //  */
+    // maxPixelDiameter?: number;
 
-    /**
-     * 最小可渲染透明度
-     */
-    minAlpha?: number;
-
-    /**
-     * Environment(skybox) flag. Defaults to false.
-     */
-    enableEnvironment?: boolean;
+    // /**
+    //  * 最小可渲染透明度
+    //  */
+    // minAlpha?: number;
 
     /**
      * View mode. 1:First-Person View, 3:Third-Person View.

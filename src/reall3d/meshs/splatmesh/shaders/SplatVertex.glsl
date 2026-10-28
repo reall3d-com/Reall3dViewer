@@ -38,8 +38,13 @@ void main() {
     v3Cen = WatermarkEffect(v3Cen, isWatermark, debugEffect, performanceNow);
 
     vec4 cam = modelViewMatrix * vec4(v3Cen, 1.0);
+    if (cam.z > 0.0) {
+        vColor = vec4(0.0);
+        return;
+    }
+
     vec4 pos2d = projectionMatrix * cam;
-    float clip = 1.05 * pos2d.w;
+    float clip = 1.1 * pos2d.w;
     if (pos2d.z < -clip || pos2d.x < -clip || pos2d.x > clip || pos2d.y < -clip || pos2d.y > clip || isWatermark && (!showWaterMark || pointMode)) {
         vColor = vec4(0.0);
         return;

@@ -10,15 +10,15 @@ import {
     IsPointcloudMode,
     CreateSplatMesh,
     SplatMeshDispose,
-    SplatTexdataManagerDispose,
+    SplatDataManagerDispose,
     WorkerDispose,
     GetScene,
     GetOptions,
     GetCanvas,
     GetRenderer,
     IsBigSceneMode,
-    SplatTexdataManagerAddModel,
-    WorkerSort,
+    SplatDataManagerAddModel,
+    NotifyWkA09Sort,
     SplatTexdataManagerDataChanged,
     NotifyViewerNeedUpdate,
     ViewerNeedUpdate,
@@ -42,10 +42,11 @@ import {
     OnSmallSceneShowDone,
     IsCameraLookAtPoint,
     IsSmallSceneShowDone,
-    LodDownloadManagerAddLodMeta,
+    LodDownloadAddLodMeta,
     SplatMeshSwitchDisplayMode,
     GetMeta,
     LodDownloadManagerDispose,
+    OnStartLodShown,
 } from '../../events/EventConstants';
 import { SplatMeshOptions } from './SplatMeshOptions';
 import { ModelOptions } from '../../modeldata/ModelOptions';
@@ -53,8 +54,8 @@ import { initSplatMeshOptions } from '../../utils/ViewerUtils';
 import { isInFrustum } from '../../utils/CommonUtils';
 import { MetaData } from '../../modeldata/MetaData';
 import { BoundBox } from '../boundbox/BoundBox';
-import { QualityLevels, SortTypes } from '../../utils/consts/GlobalConstants';
-import { AudioText, AudioTextOptions } from '../../media/AudioText';
+import { QualityLevels, SortTypes } from '../../utils/GlobalConstants';
+import { AudioText, AudioTextOptions } from '../media/AudioText';
 import { setupAllEventsSplatMesh } from '../../scene/SetupAllEvents';
 
 /**
@@ -98,7 +99,6 @@ export class SplatMesh extends Mesh {
         on(IsBigSceneMode, () => opts.bigSceneMode);
         on(IsPointcloudMode, () => opts.pointcloudMode);
         on(GetSplatMesh, () => that);
-        on(GetRenderQualityLevel, () => opts.qualityLevel || QualityLevels.Default5);
         on(GetSortType, () => opts.sortType || SortTypes.Default1);
         on(IsSplatMeshCreated, () => isSplatMeshCreated);
         on(IsCameraLookAtPoint, (tgtPoint: Vector3, maxDistanceToCam = 1.0): boolean => {
@@ -111,6 +111,7 @@ export class SplatMesh extends Mesh {
         on(IsSmallSceneShowDone, () => isSmallSceneShowDone);
         on(OnSmallSceneShowDone, () => (isSmallSceneShowDone = true), true);
         on(OnSmallSceneShowDone, () => setTimeout(() => that.audioText?.opts.autoPlay && !that.audioText?.opts.position && that.audioText?.play(), 5000), true);
+        on(OnStartLodShown, () => setTimeout(() => that.audioText?.opts.autoPlay && !that.audioText?.opts.position && that.audioText?.play(), 5000), true);
 
         setupAllEventsSplatMesh(events);
 
@@ -124,7 +125,7 @@ export class SplatMesh extends Mesh {
             that.meta.transform && that.applyMatrix4(new Matrix4().fromArray(that.meta.transform));
             that.frustumCulled = false;
             that.onBeforeRender = () => {
-                fire(WorkerSort);
+                fire(NotifyWkA09Sort);
                 fire(SplatUpdatePerformanceNow, performance.now());
 
                 if (
@@ -160,7 +161,7 @@ export class SplatMesh extends Mesh {
      * @param opts 配置项
      * @returns 最新配置项
      */
-    public options(opts?: SplatMeshOptions): SplatMeshOptions {
+    public options(opts?: any): any {
         const that = this;
         if (that.disposed) return;
         const fire = (key: number, ...args: any): any => that.events.fire(key, ...args);
@@ -169,8 +170,6 @@ export class SplatMesh extends Mesh {
         if (opts) {
             opts.pointcloudMode !== undefined && !fire(SplatUpdatePointMode, opts.pointcloudMode) && (thisOpts.pointcloudMode = opts.pointcloudMode);
             opts.lightFactor !== undefined && fire(SplatUpdateLightFactor, opts.lightFactor);
-            opts.maxRenderCountOfMobile !== undefined && (thisOpts.maxRenderCountOfMobile = opts.maxRenderCountOfMobile);
-            opts.maxRenderCountOfPc !== undefined && (thisOpts.maxRenderCountOfPc = opts.maxRenderCountOfPc);
             opts.qualityLevel !== undefined && (thisOpts.qualityLevel = opts.qualityLevel) && fire(OnQualityLevelChanged);
             !thisOpts.mapMode && opts.sortType !== undefined && (thisOpts.sortType = opts.sortType) && fire(WorkerUpdateParams);
             opts.disableTransitionEffectOnLoad !== undefined && (thisOpts.disableTransitionEffectOnLoad = opts.disableTransitionEffectOnLoad);
@@ -211,6 +210,8 @@ export class SplatMesh extends Mesh {
             }
         }
 
+        that.events.on(GetRenderQualityLevel, () => meta.qualityLevel || QualityLevels.Default5);
+
         that.meta = meta;
         const atOpts: AudioTextOptions = { autoPlay: meta.audio?.autoPlay, mp3: meta.audio?.mp3, textDurations: meta.audio?.textDurations };
         if (meta.audio?.position) {
@@ -220,9 +221,9 @@ export class SplatMesh extends Mesh {
         }
         that.audioText = new AudioText(atOpts);
         if (meta.url?.endsWith('.lod.json') || meta.url?.endsWith('lod-meta.json')) {
-            that.events.fire(LodDownloadManagerAddLodMeta, opts, meta);
+            that.events.fire(LodDownloadAddLodMeta, opts, meta);
         } else {
-            that.events.fire(SplatTexdataManagerAddModel, opts, meta);
+            that.events.fire(SplatDataManagerAddModel, opts, meta);
         }
     }
 
@@ -261,10 +262,9 @@ export class SplatMesh extends Mesh {
         that.boundBox.removeFromParent();
         that.audioText?.dispose();
 
-        fire(LodDownloadManagerDispose);
         fire(CommonUtilsDispose);
         fire(WorkerDispose);
-        fire(SplatTexdataManagerDispose);
+        fire(SplatDataManagerDispose);
         fire(SplatMeshDispose);
 
         that.events.clear();

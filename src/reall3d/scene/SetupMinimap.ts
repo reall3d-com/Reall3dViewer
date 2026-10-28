@@ -21,7 +21,7 @@ import {
     WebGLRenderer,
 } from 'three';
 import { Events } from '../events/Events';
-import { GetCanvasSize, GetRenderer, OnViewerDispose, TraverseDisposeAndClear, RenderMinimap, GetCamera } from '../events/EventConstants';
+import { GetCanvasSize, GetRenderer, OnViewerDispose, TraverseDisposeAndClear, RenderMinimap, GetCamera, IsDefaultPipeline } from '../events/EventConstants';
 
 export function setupMinimap(events: Events) {
     let disposed = false;
@@ -37,7 +37,7 @@ export function setupMinimap(events: Events) {
     const _camDir = new Vector3();
 
     on(RenderMinimap, (options?: MinimapOptions) => {
-        if (disposed) return;
+        if (disposed || fire(IsDefaultPipeline)) return;
         !miniMapScene && initMiniMap(options);
         if (!miniMapCamera) return;
 

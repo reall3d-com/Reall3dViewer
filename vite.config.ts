@@ -41,6 +41,7 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     rapier: ['@dimforge/rapier3d-compat'],
+                    threetile: ['@gotoeasy/three-tile'],
                 },
                 chunkFileNames: 'assets/chunk-[hash].js',
                 entryFileNames: 'assets/entry-[hash].js',

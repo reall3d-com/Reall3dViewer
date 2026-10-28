@@ -3,7 +3,7 @@
 // ==============================================
 import { Vector3 } from 'three';
 import { clipUint8, computeCompressionRatio, uint8ArrayToString, unzipToMap, webpToRgba } from '../../utils/CommonUtils';
-import { DataSize32, MaxProcessCnt, SH_C0, SplatDataSize32, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/consts/GlobalConstants';
+import { isMobile, MaxProcessCnt, SH_C0, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSplatToTexdata, parseSpxBlockData } from '../wasm/WasmParser';
 import { loadFile } from './FileLoader';
@@ -127,7 +127,7 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
     const cntSplat: number = isV1 ? meta.means.shape[0] : meta.count;
     const limitCnt = Math.min(cntSplat, model.fetchLimit);
     const shDegree = meta.shN ? meta.shN.bands || 3 : 0;
-    const splatData = new Uint8Array(limitCnt * DataSize32);
+    const splatData = new Uint8Array(limitCnt * 32);
     model.modelSplatCount = cntSplat;
     model.dataShDegree = shDegree;
     model.splatData = splatData;
@@ -168,9 +168,9 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
 
     while (limitCnt > model.dataSplatCount) {
         const data: Uint8Array = isV1 ? await parseSogV1(model.dataSplatCount) : await parseSogV2(model.dataSplatCount);
-        model.splatData.set(data.subarray(0), model.dataSplatCount * SplatDataSize32);
+        model.splatData.set(data.subarray(0), model.dataSplatCount * 32);
         updateModelMinMax(model, data);
-        model.dataSplatCount += data.byteLength / SplatDataSize32;
+        model.dataSplatCount += data.byteLength / 32;
         model.downloadSplatCount = model.dataSplatCount;
     }
 
@@ -178,7 +178,7 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
         const maxCnt = Math.min(startCnt + MaxProcessCnt, limitCnt);
         const processCnt = maxCnt - startCnt;
 
-        const ui8sData = new Uint8Array(processCnt * DataSize32);
+        const ui8sData = new Uint8Array(processCnt * 32);
         const f32sData = new Float32Array(ui8sData.buffer);
 
         for (let i = startCnt, n = 0; i < maxCnt; i++) {
@@ -232,7 +232,7 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
 
     function updateModelMinMax(model: SplatModel, data: Uint8Array) {
         // 计算当前半径，增量数据中继续计算即可
-        const dataCnt = data.byteLength / SplatDataSize32;
+        const dataCnt = data.byteLength / 32;
         const f32s: Float32Array = new Float32Array(data.buffer);
         for (let i = 0, x = 0, y = 0, z = 0; i < dataCnt; i++) {
             x = f32s[i * 8];
@@ -290,7 +290,7 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
         const maxCnt = Math.min(startCnt + MaxProcessCnt, limitCnt);
         const processCnt = maxCnt - startCnt;
 
-        const ui8sData = new Uint8Array(processCnt * DataSize32);
+        const ui8sData = new Uint8Array(processCnt * 32);
         const f32sData = new Float32Array(ui8sData.buffer);
 
         for (let i = startCnt, n = 0; i < maxCnt; i++) {
