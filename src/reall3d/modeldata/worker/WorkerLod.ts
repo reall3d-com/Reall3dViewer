@@ -704,25 +704,6 @@ function fnCheckSplatNodeChildVisible(cameraPosition: Vector3) {
     const topLod = getTopLod();
     traveSplatTree(splatTiles.tree, node => {
         const state = fnCheckSplatNodeVisible(node, cameraPosition);
-        // if (state == 0) {
-        //     // 完全不可见，旗下全部叶节点直接设定
-        //     traveSplatTree(node, nd => {
-        //         if (nd.lods) {
-        //             nd.currentVisible = false;
-        //             nd.currentRenderLod = topLod;
-        //         }
-        //     });
-        //     return false;
-        // } else if (state > 0) {
-        //     // 完全可见（部分可见的叶节点都是完全可见），旗下全部叶节点直接计算设定
-        //     traveSplatTree(node, nd => {
-        //         if (!nd.lods) return;
-
-        //         nd.currentVisible = true;
-        //         fnAddTargetLod(nd, fnCalcRequireLodLevel(nd, cameraPosition));
-        //     });
-        // }
-
         if (state == 0) {
             // 完全不可见，旗下全部叶节点直接设定
             if (sortType === SortTypes.Radial2) {
