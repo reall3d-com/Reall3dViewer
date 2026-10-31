@@ -327,6 +327,7 @@ export function setupPlayer(events: Events) {
             } else if (fire(IsPlayerMode3)) {
                 orbitControls.maxDistance = 20;
             } else if (fire(IsFlyMode)) {
+                orbitControls.maxDistance = orbitControls.minDistance;
                 return;
             } else {
                 !orbitControls.enablePan && (orbitControls.enablePan = true);
