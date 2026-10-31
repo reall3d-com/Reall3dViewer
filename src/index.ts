@@ -22,7 +22,8 @@ let viewer: Reall3dViewer;
 let mapViewer: Reall3dMapViewer;
 if (url) {
     viewer = new Reall3dViewer({ debugMode, shDegree });
-    url.endsWith('.scene.json') ? viewer.addScene(url) : viewer.addModel(url);
+    const isLod = url.endsWith('.scene.json') || url.endsWith('.lod.json') || url.endsWith('lod-meta.json');
+    isLod ? viewer.addScene(url) : viewer.addModel(url);
     debugMode && initDevMode(true);
 } else {
     viewer = new Reall3dViewer({ debugMode: true, shDegree });
