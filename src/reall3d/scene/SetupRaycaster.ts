@@ -49,6 +49,7 @@ export function setupRaycaster(events: Events) {
     });
 
     on(RaycasterRayIntersectPoints, async (mouseClientX: number, mouseClientY: number): Promise<Vector3[]> => {
+        // console.time('raycaster');
         const { width, height, left, top } = fire(GetCanvasSize);
         const mouse = new Vector2();
         mouse.x = ((mouseClientX - left) / width) * 2 - 1;
@@ -96,7 +97,6 @@ export function setupRaycaster(events: Events) {
         }
 
         if (!fire(IsPlayerMode)) {
-            // console.time('raycaster');
             const metaMatrix: Matrix4 = fire(GetMetaMatrix);
             const viewProj: Matrix4 = camera.projectionMatrix.clone().multiply(camera.matrixWorldInverse);
             for (let i = 0; i < objectSplats.length; i++) {
@@ -121,7 +121,7 @@ export function setupRaycaster(events: Events) {
                     for (let key of Object.keys(rs)) {
                         const xyzs: string[] = key.split(',');
                         const center: Vector3 = new Vector3(Number(xyzs[0]), Number(xyzs[1]), Number(xyzs[2])); // 边长为2的立方体中心点
-                        if (raycaster.ray.distanceToPoint(center) <= 1.4143) {
+                        if (raycaster.ray.distanceToPoint(center) <= 1.732) {
                             const points: number[] = rs[key];
                             for (let j = 0, cnt = points.length / 3; j < cnt; j++) {
                                 const point: Vector3 = new Vector3(points[3 * j + 0], points[3 * j + 1], points[3 * j + 2]);
@@ -136,10 +136,12 @@ export function setupRaycaster(events: Events) {
                     }
                 }
             }
-            // console.timeEnd('raycaster');
         }
 
-        if (!intersectObjs.length) return [];
+        if (!intersectObjs.length) {
+            // console.timeEnd('raycaster');
+            return [];
+        }
 
         intersectObjs.sort((a, b) => a.d - b.d);
         const tmps: any[] = [];
@@ -147,6 +149,7 @@ export function setupRaycaster(events: Events) {
             intersectObjs[i].d - minDist < 0.01 && tmps.push(intersectObjs[i]);
         }
         tmps.sort((a, b) => a.p - b.p);
+        // console.timeEnd('raycaster');
         return [tmps[0].point];
     });
 
