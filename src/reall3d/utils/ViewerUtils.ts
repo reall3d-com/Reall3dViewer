@@ -5,6 +5,9 @@ import { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
 import { SplatMeshOptions, TransitionEffects } from '../meshs/splatmesh/SplatMeshOptions';
 import { Reall3dViewerOptions } from '../viewer/Reall3dViewerOptions';
 import { QualityLevels, SortTypes } from './GlobalConstants';
+import { MetaData } from '../modeldata/MetaData';
+import { getUrl } from './CommonUtils';
+import { SplatTiles } from '../modeldata/SplatTiles';
 
 export function initSplatMeshOptions(options: SplatMeshOptions): SplatMeshOptions {
     const opts: SplatMeshOptions = { ...options };
@@ -129,4 +132,41 @@ export function copyGsViewerOptions(gsViewerOptions: Reall3dViewerOptions): Spla
     opts.viewMode = gsViewerOptions.viewMode;
 
     return opts;
+}
+
+// 大场景默认配置，并非推荐配置，仅方便直接查看用
+export async function genDefaultSceneMeta(lodUrl: string): Promise<MetaData> {
+    const name = 'default settings';
+    const version = '1.0';
+    const autoRotate = false;
+    const pointcloudMode = false;
+    const url = getUrl(lodUrl, location.href);
+    let meta: MetaData = { name, version, autoRotate, pointcloudMode, url };
+    let lod = {} as SplatTiles;
+    try {
+        const res = await fetch(lodUrl, { mode: 'cors', credentials: 'omit', cache: 'reload' });
+        if (res.status === 200) {
+            lod = await res.json();
+        } else {
+            console.error('scene file fetch failed, status:', res.status);
+            return meta;
+        }
+    } catch (e) {
+        console.error('scene file fetch failed', e.message);
+        return meta;
+    }
+
+    const targets = [];
+    const distances = [];
+    for (let i = 0; i < lod.lodLevels; i++) {
+        targets.push(i);
+        i && distances.push(i * 10);
+    }
+    meta.mobileLodTargets = [...targets];
+    meta.mobileLodDistances = [...distances];
+    meta.pcLodTargets = [...targets];
+    meta.pcLodDistances = [...distances];
+    meta.cameraInfo = { position: [0, -5, 15], lookAt: [0, 0, 0], lookUp: [0, -1, 0] };
+
+    return meta;
 }

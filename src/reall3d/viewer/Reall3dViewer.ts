@@ -86,7 +86,7 @@ import {
 import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
 import { ModelOptions } from '../modeldata/ModelOptions';
 import { Events } from '../events/Events';
-import { copyGsViewerOptions, initCamera, initGsViewerOptions, initRenderer } from '../utils/ViewerUtils';
+import { copyGsViewerOptions, genDefaultSceneMeta, initCamera, initGsViewerOptions, initRenderer } from '../utils/ViewerUtils';
 import { Reall3dViewerOptions } from './Reall3dViewerOptions';
 import { SplatMeshOptions } from '../meshs/splatmesh/SplatMeshOptions';
 import { MarkData } from '../meshs/mark/data/MarkData';
@@ -457,15 +457,19 @@ export class Reall3dViewer {
         const fire = (key: number, ...args: any): any => that.events.fire(key, ...args);
 
         let meta: MetaData = {};
-        try {
-            const res = await fetch(sceneUrl, { mode: 'cors', credentials: 'omit', cache: 'reload' });
-            if (res.status === 200) {
-                meta = await res.json();
-            } else {
-                return console.error('scene file fetch failed, status:', res.status);
+        if (sceneUrl.endsWith('.scene.json')) {
+            try {
+                const res = await fetch(sceneUrl, { mode: 'cors', credentials: 'omit', cache: 'reload' });
+                if (res.status === 200) {
+                    meta = await res.json();
+                } else {
+                    return console.error('scene file fetch failed, status:', res.status);
+                }
+            } catch (e) {
+                return console.error('scene file fetch failed', e.message);
             }
-        } catch (e) {
-            return console.error('scene file fetch failed', e.message);
+        } else {
+            meta = await genDefaultSceneMeta(sceneUrl);
         }
 
         if (!meta.url) return console.error('missing lod meta url');
