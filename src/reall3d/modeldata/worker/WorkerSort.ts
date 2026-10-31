@@ -64,6 +64,7 @@ let cameraDir: number[];
 let cameraPos: number[];
 
 let lastSortVersion: number = 0;
+let lastSortCameraPos: number[] = [];
 // let isBigSceneMode: boolean;
 let depthNearRate = 0.4; // 按比例计算分段(近端占比0.4是为了调试看到效果，实际应用应根据模型尺寸具体调整)
 let depthNearValue = 0; // 按设定值计算分段(设定时优先)
@@ -76,19 +77,30 @@ function runSort(sortViewProj: number[], sortCameraDir: number[], sortCameraPos:
     const { xyz, xyzIndex, renderSplatCount, visibleSplatCount, modelSplatCount, watermarkCount, index, version } = texture;
 
     if (lastSortVersion === version) {
-        let diff =
-            Math.abs(lastViewProj[2] - sortViewProj[2]) + // 相机前方向 X
-            Math.abs(lastViewProj[6] - sortViewProj[6]) + // 相机前方向 Y
-            Math.abs(lastViewProj[10] - sortViewProj[10]) + // 相机前方向 Z
-            Math.abs(lastViewProj[12] - sortViewProj[12]) + // 相机位置 X
-            Math.abs(lastViewProj[13] - sortViewProj[13]) + // 相机位置 Y
-            Math.abs(lastViewProj[14] - sortViewProj[14]); // 相机位置 Z
-        if (diff < Epsilon) {
-            return;
+        if (sortType === SortTypes.Radial2) {
+            if (lastSortCameraPos?.length) {
+                const [x1, y1, z1] = lastSortCameraPos;
+                const [x2, y2, z2] = sortCameraPos;
+                const dx = x1 - x2;
+                const dy = y1 - y2;
+                const dz = z1 - z2;
+                const diff = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (diff < 0.5) return;
+            }
+        } else {
+            let diff =
+                Math.abs(lastViewProj[2] - sortViewProj[2]) + // 相机前方向 X
+                Math.abs(lastViewProj[6] - sortViewProj[6]) + // 相机前方向 Y
+                Math.abs(lastViewProj[10] - sortViewProj[10]) + // 相机前方向 Z
+                Math.abs(lastViewProj[12] - sortViewProj[12]) + // 相机位置 X
+                Math.abs(lastViewProj[13] - sortViewProj[13]) + // 相机位置 Y
+                Math.abs(lastViewProj[14] - sortViewProj[14]); // 相机位置 Z
+            if (diff < Epsilon) return;
         }
     }
     lastViewProj = sortViewProj;
     lastSortVersion = version;
+    lastSortCameraPos = sortCameraPos;
 
     let startTime = Date.now();
     let renderCount: number;
@@ -480,6 +492,13 @@ function calcDepthByCameraDir(dir: number[], x: number, y: number, z: number, do
     return dotPos - dir[0] * x - dir[1] * y - dir[2] * z; // 大于0为在相机背后
 }
 
+function calcDepthsRadial(cameraPos: number[], x: number, y: number, z: number): number {
+    const dx = x - cameraPos[0];
+    const dy = y - cameraPos[1];
+    const dz = z - cameraPos[2];
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 function calcMinMaxDepth(texture: SplatTexdata, viewProjOrCameraDir: number[], fnDepth: Function, dotPos: number, sortCameraPos: number[]): any {
     let maxDepth = -Infinity;
     let minDepth = Infinity;
@@ -625,13 +644,3 @@ worker.onmessage = (e: any) => {
         isSorterReady = true;
     }
 };
-
-function calcDepthsRadial(cameraPos: number[], x: number, y: number, z: number): number {
-    const cx = cameraPos[0];
-    const cy = cameraPos[1];
-    const cz = cameraPos[2];
-    const dx = x - cx;
-    const dy = y - cy;
-    const dz = z - cz;
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
-}

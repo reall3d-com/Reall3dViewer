@@ -36,6 +36,8 @@ import {
     SplatUpdateBoundBox,
     GetDataArrayTexture,
     OnStartLodShown,
+    GetSortType,
+    WorkerUpdateParams,
 } from '../../events/EventConstants';
 import {
     WkA10Information,
@@ -71,6 +73,8 @@ import {
     WkA10BoundBox,
     WkBox,
     WkA10Recycle,
+    WkA01UpdateParams,
+    WkSortType,
 } from './WkConstants';
 import { MetaData } from '../MetaData';
 import { DataStatus, SplatFile, SplatTiles } from '../SplatTiles';
@@ -128,6 +132,8 @@ export function setupWorkerLod(events: Events) {
         const totalCount = splatTiles.totalCount;
         return { totalCount, lodTargetsTotalCount, lodTargetsFileCount, maxFileSplatCount };
     });
+
+    on(WorkerUpdateParams, async () => worker.postMessage({ [WkA01UpdateParams]: true, [WkSortType]: fire(GetSortType) }), true);
 
     let lastIndex = -1;
     on(OnUploadDblIndexDone, (index: number) => {
@@ -333,7 +339,7 @@ export function setupWorkerLod(events: Events) {
     }
 
     function postWkA01Init(opts: ModelOptions, sceneMeta: MetaData) {
-        worker.postMessage({ [WkA01Init]: true, [WkJson]: JSON.stringify(sceneMeta) });
+        worker.postMessage({ [WkA01Init]: true, [WkJson]: JSON.stringify(sceneMeta), [WkSortType]: fire(GetSortType) });
         fire(TriggerWkA01Refresh);
     }
 

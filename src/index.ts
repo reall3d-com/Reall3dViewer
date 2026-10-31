@@ -27,7 +27,7 @@ if (url) {
 } else {
     viewer = new Reall3dViewer({ debugMode: true, shDegree });
     // viewer.addModel(`https://reall3d.com/demo-models/hornedlizard.v3.spx`);
-    viewer.addModel(`https://reall3d.com/demo-models/hornedlizard.v3.glb`); // KHR_gaussian_splatting_compression_spz_2
+    // viewer.addModel(`https://reall3d.com/demo-models/hornedlizard.v3.glb`); // KHR_gaussian_splatting_compression_spz_2
     // viewer.addModel(`https://reall3d.com/demo-models/yz.spx`);
     // viewer.addModel(`https://reall3d.com/demo-models/yz.glb`); // KHR_gaussian_splatting
 
@@ -35,6 +35,9 @@ if (url) {
     // viewer.addScene(`https://reall3d.com/demo-models/lod-v1/hgd/hgd-lod-fpv.scene.json`);
     // viewer.addScene(`https://reall3d.com/demo-models/lod-v1/hgd/hgd-lod-tpv.scene.json`);
     // viewer.addScene(`https://reall3d.com/demo-models/lod-metas/hgd/hgd-lod-meta-tpv.scene.json`);
+
+    viewer.addScene(`https://reall3d.com/reall3dviewer/examples/kcczt-test.scene.json`);
+    // viewer.addScene(`testdata/lod-meta-sample1/lod-meta-sample1.scene.json`);
 
     initDevMode();
 }

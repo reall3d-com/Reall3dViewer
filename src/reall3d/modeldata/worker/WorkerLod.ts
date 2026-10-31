@@ -3,7 +3,7 @@
 // ==============================================
 import { Matrix4, Plane, Vector3 } from 'three';
 import { computeSplatNodeCameraDistance, extractFrustumPlanes, getUrl, Queue, sleep } from '../../utils/CommonUtils';
-import { isMobile } from '../../utils/GlobalConstants';
+import { isMobile, SortTypes } from '../../utils/GlobalConstants';
 import { MetaData } from '../MetaData';
 import { DataStatus, SplatFile, SplatLodJsonMagic, SplatTileNode, SplatTiles } from '../SplatTiles';
 import { hashString } from 'three/src/nodes/core/NodeUtils.js';
@@ -41,6 +41,8 @@ import {
     WkA10BoundBox,
     WkBox,
     WkA10Recycle,
+    WkSortType,
+    WkA01UpdateParams,
 } from './WkConstants';
 import { DefaultLodCacheFileCount, DefaultLodMaxRenderCount } from '../../utils/DefaultValues';
 
@@ -78,6 +80,8 @@ const calcLayerQueue = new Queue<QueueItem>();
 
 const layers: SplatFile[] = [];
 let maxLayer = 10; // 初始化，会被自动更正
+let penalty = 3;
+let sortType = SortTypes.Radial2;
 
 const fifoFileSet: Set<string>[] = [new Set(), new Set(), new Set()];
 
@@ -700,15 +704,45 @@ function fnCheckSplatNodeChildVisible(cameraPosition: Vector3) {
     const topLod = getTopLod();
     traveSplatTree(splatTiles.tree, node => {
         const state = fnCheckSplatNodeVisible(node, cameraPosition);
+        // if (state == 0) {
+        //     // 完全不可见，旗下全部叶节点直接设定
+        //     traveSplatTree(node, nd => {
+        //         if (nd.lods) {
+        //             nd.currentVisible = false;
+        //             nd.currentRenderLod = topLod;
+        //         }
+        //     });
+        //     return false;
+        // } else if (state > 0) {
+        //     // 完全可见（部分可见的叶节点都是完全可见），旗下全部叶节点直接计算设定
+        //     traveSplatTree(node, nd => {
+        //         if (!nd.lods) return;
+
+        //         nd.currentVisible = true;
+        //         fnAddTargetLod(nd, fnCalcRequireLodLevel(nd, cameraPosition));
+        //     });
+        // }
+
         if (state == 0) {
             // 完全不可见，旗下全部叶节点直接设定
-            traveSplatTree(node, nd => {
-                if (nd.lods) {
+            if (sortType === SortTypes.Radial2) {
+                // 径向距离排序时，后方使用较低层级
+                traveSplatTree(node, nd => {
+                    if (!nd.lods) return;
+
                     nd.currentVisible = false;
-                    nd.currentRenderLod = topLod;
-                }
-            });
-            return false;
+                    fnAddTargetLod(nd, fnCalcRequireLodLevel(nd, cameraPosition));
+                });
+            } else {
+                // 默认投影排序时，后方使用最粗糙层
+                traveSplatTree(node, nd => {
+                    if (nd.lods) {
+                        nd.currentVisible = false;
+                        nd.currentRenderLod = topLod;
+                    }
+                });
+                return false;
+            }
         } else if (state > 0) {
             // 完全可见（部分可见的叶节点都是完全可见），旗下全部叶节点直接计算设定
             traveSplatTree(node, nd => {
@@ -755,13 +789,13 @@ function getTopLod() {
 
 function fnCalcRequireLodLevel(leafNode: SplatTileNode, cameraPosition: Vector3) {
     const distance = computeSplatNodeCameraDistance(cameraPosition, leafNode);
-    leafNode.currentDistance = distance;
+    leafNode.currentDistance = sortType === SortTypes.Default1 || leafNode.currentVisible ? distance : distance * penalty;
     // lodDistances/lodTargets都已升序
     let requireLevel = getTopLod();
     for (let i = splatTiles.lodDistances.length - 1; i >= 0; i--) {
         if (!leafNode.lods[splatTiles.lodTargets[i]]) continue; // 该块无此lod数据
 
-        if (distance >= splatTiles.lodDistances[i]) {
+        if (leafNode.currentDistance >= splatTiles.lodDistances[i]) {
             requireLevel = splatTiles.lodTargets[i];
             break;
         }
@@ -1167,7 +1201,11 @@ worker.onmessage = (e: any) => {
     const data: any = e.data;
     if (data[WkA01Init]) {
         // 初始化
+        // sortType = data[WkSortType] === SortTypes.Default1 ? SortTypes.Default1 : SortTypes.Radial2;
         onWkA01Init(data[WkJson]);
+    } else if (data[WkA01UpdateParams]) {
+        // 更新参数
+        sortType = data[WkSortType] === SortTypes.Default1 ? SortTypes.Default1 : SortTypes.Radial2;
     } else if (data[WkA01SetTextureSize]) {
         // 纹理尺寸
         onWkA01SetTextureSize(data[WkJson]);

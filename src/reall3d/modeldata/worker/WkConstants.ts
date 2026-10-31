@@ -160,6 +160,8 @@ export const WkA01BackXyz = `$${n++}`;
 export const WkA01BackXyzIndex = `$${n++}`;
 /** 回收 */
 export const WkA01BackSplatBuffer = `$${n++}`;
+/** 更新参数 */
+export const WkA01UpdateParams = `$${n++}`;
 
 /** 更新排序数据 */
 export const WkA09SortPart = `$${n++}`;

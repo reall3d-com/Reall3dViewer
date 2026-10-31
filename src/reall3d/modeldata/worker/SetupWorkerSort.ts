@@ -138,16 +138,20 @@ export function setupWorkerSort(events: Events) {
         }),
     );
     on(WorkerDispose, () => worker.terminate(), true);
-    on(WorkerUpdateParams, async () => {
-        await fire(GetMaxRenderCount);
-        worker.postMessage({
-            [WkA09UpdateParams]: true,
-            [WkQualityLevel]: fire(GetRenderQualityLevel),
-            [WkSortType]: fire(GetSortType),
-            [WkDepthNearRate]: (fire(GetSplatMesh) as SplatMesh)?.meta?.depthNearRate,
-            [WkDepthNearValue]: (fire(GetSplatMesh) as SplatMesh)?.meta?.depthNearValue,
-        });
-    });
+    on(
+        WorkerUpdateParams,
+        async () => {
+            await fire(GetMaxRenderCount);
+            worker.postMessage({
+                [WkA09UpdateParams]: true,
+                [WkQualityLevel]: fire(GetRenderQualityLevel),
+                [WkSortType]: fire(GetSortType),
+                [WkDepthNearRate]: (fire(GetSplatMesh) as SplatMesh)?.meta?.depthNearRate,
+                [WkDepthNearValue]: (fire(GetSplatMesh) as SplatMesh)?.meta?.depthNearValue,
+            });
+        },
+        true,
+    );
 
     (async () => {
         const maxRenderCount = await fire(GetMaxRenderCount);

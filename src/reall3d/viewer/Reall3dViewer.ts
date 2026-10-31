@@ -478,6 +478,7 @@ export class Reall3dViewer {
         const opts: Reall3dViewerOptions = { root: orgOpts.root, ...meta, ...(meta.cameraInfo || {}) };
         opts.bigSceneMode = true;
         opts.qualityLevel = meta.qualityLevel || QualityLevels.Default5;
+        opts.sortType = meta.sortType || SortTypes.Radial2;
         opts.viewMode = meta.viewMode;
         meta.background && (opts.background = meta.background);
         that.reset({ ...opts });
