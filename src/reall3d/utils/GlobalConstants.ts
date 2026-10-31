@@ -1,7 +1,7 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-export const ViewerVersion = 'v3.0.0'; // Reall3dViewer 版本
+export const ViewerVersion = 'v3.1-dev'; // Reall3dViewer 版本
 
 export const isCloudDevice = /CloudDevice/i.test(navigator.userAgent);
 export const isMobile =
@@ -72,13 +72,13 @@ export enum QualityLevels {
     L4 = 4,
     /** Level 5，默认级别，渲染质量及性能综合表现良好 */
     Default5 = 5,
-    /** Level 4，渲染质量略高 */
+    /** Level 6，渲染质量略高 */
     L6 = 6,
-    /** Level 4，渲染质量较高 */
+    /** Level 7，渲染质量较高 */
     L7 = 7,
-    /** Level 4，渲染质量偏高 */
+    /** Level 8，渲染质量偏高 */
     L8 = 8,
-    /** Level 4，渲染质量最高，性能最差，应用于高端设备时更适用 */
+    /** Level 9，渲染质量最高，性能最差，应用于高端设备时更适用 */
     L9 = 9,
 }
 

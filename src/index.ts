@@ -38,6 +38,7 @@ if (url) {
 
     viewer.addScene(`https://reall3d.com/reall3dviewer/examples/kcczt-test.scene.json`);
     // viewer.addScene(`testdata/lod-meta-sample1/lod-meta-sample1.scene.json`);
+    // viewer.addScene(`testdata/lod-meta-sample2/lod-meta2.scene.json`);
 
     initDevMode();
 }
