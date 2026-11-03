@@ -28,7 +28,7 @@ void main() {
     bool isWatermark = fnWatermark(cen);
     float colorA = (float(cov3d.w >> 24) / 255.0);
     if (colorA < minAlpha && !isWatermark) {
-        vColor = vec4(0.0);
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
 
@@ -39,20 +39,20 @@ void main() {
 
     vec4 cam = modelViewMatrix * vec4(v3Cen, 1.0);
     if (cam.z > 0.0) {
-        vColor = vec4(0.0);
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
 
     vec4 pos2d = projectionMatrix * cam;
     float clip = 1.1 * pos2d.w;
     if (pos2d.z < -clip || pos2d.x < -clip || pos2d.x > clip || pos2d.y < -clip || pos2d.y > clip || isWatermark && (!showWaterMark || pointMode)) {
-        vColor = vec4(0.0);
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
 
     float currentRadius = length(vec3(0.0, topY, 0.0) - v3Cen);
     if (currentVisibleRadius > 0.0 && currentRadius > currentVisibleRadius) {
-        vColor = vec4(0.0);
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
 
@@ -139,7 +139,7 @@ void main() {
     float diameter2 = min(sqrt(2.0 * eigenValue2), maxPixelDiameter);
     if (isNormal) {
         if (diameter1 < minPixelDiameter && diameter2 < minPixelDiameter) {
-            vColor = vec4(0.0);
+            gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
             return;
         }
     } else {
