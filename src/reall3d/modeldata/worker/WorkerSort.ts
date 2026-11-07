@@ -85,7 +85,7 @@ function runSort(sortViewProj: number[], sortCameraDir: number[], sortCameraPos:
                 const dy = y1 - y2;
                 const dz = z1 - z2;
                 const diff = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                if (diff < 0.5) return;
+                if (diff < 1) return;
             }
         } else {
             let diff =
