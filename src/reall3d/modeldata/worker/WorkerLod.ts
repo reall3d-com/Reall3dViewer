@@ -201,7 +201,7 @@ function setDownloadDataGpuCache(): boolean {
         totalDownloadedCount += file.downloadCount;
         fetchingSet.delete(file.fileKey);
 
-        file.lastTime = Math.max(Date.now() + 100, file.lastTime);
+        file.lastTime = Math.max(Date.now() + 5000, file.lastTime); // 刚下载好的数据，控制至少存活N秒
         file.textureReady = true; // sceneMeta.useGpuCache; // TODO 可以统一按true管理
 
         derty = true;
@@ -225,7 +225,7 @@ function setDownloadDataMemCache(): boolean {
         fetchingSet.delete(file.fileKey);
         memCachedFileSet.add(file);
 
-        file.lastTime = Math.max(Date.now() + 100, file.lastTime);
+        file.lastTime = Math.max(Date.now() + 5000, file.lastTime); // 刚下载好的数据，控制至少存活N秒
         derty = true;
     }
 
@@ -269,7 +269,7 @@ async function mergeLodGpuCache(viewProjMatrix: Matrix4, cameraPosition: Vector3
     if (!derty && Date.now() - texture.activeTime < BlankingTimeOfLargeScene) return;
 
     // 视锥剔除
-    extractFrustumPlanes(viewProjMatrix, frustumPlanes); // 更新视锥体平面
+    sortType !== SortTypes.Radial2 && extractFrustumPlanes(viewProjMatrix, frustumPlanes); // 更新视锥体平面
     fnCheckSplatNodeChildVisible(cameraPosition);
     await sleep();
 
@@ -766,8 +766,7 @@ function getTopLod() {
 }
 
 function fnCalcRequireLodLevel(leafNode: SplatTileNode, cameraPosition: Vector3) {
-    const distance = computeSplatNodeCameraDistance(cameraPosition, leafNode);
-    leafNode.currentDistance = distance;
+    leafNode.currentDistance = computeSplatNodeCameraDistance(cameraPosition, leafNode);
     // lodDistances/lodTargets都已升序
     let requireLevel = getTopLod();
     for (let i = splatTiles.lodDistances.length - 1; i >= 0; i--) {
