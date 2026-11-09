@@ -10,6 +10,7 @@ import {
     InstancedBufferAttribute,
     InstancedBufferGeometry,
     Mesh,
+    NearestFilter,
     NormalBlending,
     PerspectiveCamera,
     RGBAIntegerFormat,
@@ -290,7 +291,12 @@ export function setupSplatMesh(events: Events) {
             dataTexture0 = new DataArrayTexture(dataArray0, texwidth, texheightary, texdepth);
             dataTexture0.format = RGBAIntegerFormat;
             dataTexture0.type = UnsignedIntType;
+            // ------ 显式写避免版本差异，虽然可能就是默认值 ------
+            dataTexture0.generateMipmaps = false;
+            dataTexture0.minFilter = NearestFilter;
+            dataTexture0.magFilter = NearestFilter;
             dataTexture0.flipY = false;
+            // -------------------------------------------------
             dataTexture0.needsUpdate = true;
             material.uniforms[VarSplatTexture0].value = dataTexture0;
             return dataTexture0;
@@ -303,7 +309,12 @@ export function setupSplatMesh(events: Events) {
         dataTexture1.format = RGBAIntegerFormat;
         dataTexture1.type = UnsignedIntType;
         dataTexture1.internalFormat = 'RGBA32UI';
+        // ------ 显式写避免版本差异，虽然可能就是默认值 ------
+        dataTexture1.generateMipmaps = false;
+        dataTexture1.minFilter = NearestFilter;
+        dataTexture1.magFilter = NearestFilter;
         dataTexture1.flipY = false;
+        // -------------------------------------------------
         dataTexture1.needsUpdate = true;
         material.uniforms[VarSplatTexture1].value = dataTexture1;
 

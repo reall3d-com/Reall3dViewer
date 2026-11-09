@@ -166,6 +166,7 @@ export async function genDefaultSceneMeta(lodUrl: string): Promise<MetaData> {
     meta.mobileLodDistances = [...distances];
     meta.pcLodTargets = [...targets];
     meta.pcLodDistances = [...distances];
+    meta.useGpuCache = lod.totalCount < 3000_0000;
     meta.cameraInfo = { position: [0, -5, 15], lookAt: [0, 0, 0], lookUp: [0, -1, 0] };
 
     return meta;
