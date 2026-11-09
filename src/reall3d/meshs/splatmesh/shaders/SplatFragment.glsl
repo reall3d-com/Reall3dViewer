@@ -10,7 +10,7 @@ varying vec4 vColor;
 varying vec4 vPosition;
 
 void main() {
-    if (vPosition.z >= 1.0) {
+    if (vPosition.z > 1.0) {
         discard;
     }
 
