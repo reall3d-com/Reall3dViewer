@@ -41,6 +41,10 @@ export default defineConfig({
         chunkSizeWarningLimit: 2048,
         sourcemap: false,
         rollupOptions: {
+            input: {
+                viewer: './viewer.html',
+                main: './index.html',
+            },
             output: {
                 manualChunks: {
                     rapier: ['@dimforge/rapier3d-compat'],
