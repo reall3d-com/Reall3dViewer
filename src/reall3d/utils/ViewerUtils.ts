@@ -162,10 +162,14 @@ export async function genDefaultSceneMeta(lodUrl: string): Promise<MetaData> {
         targets.push(i);
         i && distances.push(i * 10);
     }
+    meta.autoRotate = false;
+    meta.pointcloudMode = false;
     meta.mobileLodTargets = [...targets];
     meta.mobileLodDistances = [...distances];
+    meta.maxRenderCountOfMobile = 2200000;
     meta.pcLodTargets = [...targets];
     meta.pcLodDistances = [...distances];
+    meta.maxRenderCountOfPc = 3800000;
     meta.useGpuCache = lod.totalCount < 3000_0000;
     meta.cameraInfo = { position: [0, -5, 15], lookAt: [0, 0, 0], lookUp: [0, -1, 0] };
 

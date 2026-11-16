@@ -28,10 +28,13 @@ import {
     OnLoadAndRenderPointCloudPly,
     MarkUpdateVisible,
     LoadSmallSceneMetaData,
+    GetScreenshotBase64,
+    GetRenderer,
+    GetCamera,
 } from '../events/EventConstants';
 import { loadFile } from '../modeldata/loaders/FileLoader';
 import { PLYLoader } from 'three/examples/jsm/Addons.js';
-import { Points, PointsMaterial } from 'three';
+import { Points, PointsMaterial, WebGLRenderer, WebGLRenderTarget } from 'three';
 
 export function setupViewerUtils(events: Events) {
     let disposed: boolean = false;
@@ -109,5 +112,42 @@ export function setupViewerUtils(events: Events) {
         }
 
         fire(OnFetchStop, 0);
+    });
+
+    on(GetScreenshotBase64, (w = 600, h = 338) => {
+        const renderer: WebGLRenderer = fire(GetRenderer);
+        const width = w || renderer.domElement.width;
+        const height = h || renderer.domElement.height;
+        const renderTarget = new WebGLRenderTarget(width, height);
+
+        renderer.setRenderTarget(renderTarget);
+        renderer.render(fire(GetScene), fire(GetCamera));
+        renderer.setRenderTarget(null);
+
+        // 读取像素数据
+        const pixels = new Uint8Array(width * height * 4);
+        renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
+
+        // 创建Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx!.createImageData(width, height);
+
+        // 像素倒序（WebGL原点和Canvas不同）
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const destIdx = (y * width + x) * 4;
+                const srcIdx = ((height - y - 1) * width + x) * 4; // 镜像
+                imgData.data[destIdx] = pixels[srcIdx];
+                imgData.data[destIdx + 1] = pixels[srcIdx + 1];
+                imgData.data[destIdx + 2] = pixels[srcIdx + 2];
+                imgData.data[destIdx + 3] = pixels[srcIdx + 3];
+            }
+        }
+        ctx!.putImageData(imgData, 0, 0);
+
+        return canvas.toDataURL('image/jpeg', 0.7); // 改成 JPG，质量 0.7
     });
 }

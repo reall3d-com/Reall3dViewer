@@ -2,17 +2,17 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 export class Events {
-    private map: Map<number | string, Function | Function[]>;
+    private map: Map<number | string, Function | Function[] | undefined>;
 
     constructor() {
         this.map = new Map();
     }
 
-    public on(key: number | string, fn: Function = null, multiFn: boolean = false): Function | Function[] {
+    public on(key: number | string, fn?: Function, multiFn: boolean = false): Function | Function[] | undefined {
         // key不对时，不处理
         if (!key) {
             console.error('Invalid event key', key);
-            return null;
+            return;
         }
 
         // 无fn时，返回值
@@ -21,7 +21,7 @@ export class Events {
         // 设定为单方法或方法数组（类别冲突时，不处理）
         if (multiFn) {
             // 多处理方法
-            let ary: Function | Function[] = this.map.get(key);
+            let ary: Function | Function[] | undefined = this.map.get(key);
             if (!ary) {
                 ary = [];
                 this.map.set(key, ary);
@@ -33,7 +33,7 @@ export class Events {
             }
         } else {
             // 单处理方法
-            let ary: Function | Function[] = this.map.get(key);
+            const ary: Function | Function[] | undefined = this.map.get(key);
             if (!ary) {
                 this.map.set(key, fn);
             } else if (typeof ary == 'function') {
@@ -56,7 +56,7 @@ export class Events {
             return fn(...args);
         }
 
-        let rs: any[] = [];
+        const rs: any[] = [];
         fn.forEach(f => rs.push(f(...args)));
         return rs;
     }
@@ -68,7 +68,7 @@ export class Events {
         this.map.delete(key);
     }
 
-    public replace(key: number | string, fn: Function = null): void {
+    public replace(key: number | string, fn?: Function): void {
         this.off(key);
         this.on(key, fn);
     }

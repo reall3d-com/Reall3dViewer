@@ -43,6 +43,7 @@ import {
     OnInitMarks,
     GetMarkList,
     RenderCSS2D3D,
+    GetSceneCameraInfo,
 } from './../../events/EventConstants';
 import { MarkMultiLines } from './MarkMultiLines';
 import { CSS2DRenderer, CSS3DRenderer } from 'three/examples/jsm/Addons.js';
@@ -157,6 +158,21 @@ export function setupMark(events: Events) {
         }
 
         return await fire(HttpPostMetaData, meta);
+    });
+
+    on(GetSceneCameraInfo, (): Promise<boolean> => {
+        const cameraInfo = fire(GetCameraInfo);
+        const rs = { cameraInfo } as any;
+
+        if (fire(IsPlayerMode)) {
+            const player = fire(GetPlayer);
+            if (player) {
+                const meta: MetaData = fire(GetSplatMesh).meta || {};
+                rs.player = { ...(meta.player || {}) };
+                rs.player.position = player.position.toArray();
+            }
+        }
+        return rs;
     });
 
     on(MetaMarkSaveData, async (): Promise<boolean> => {

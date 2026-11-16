@@ -82,6 +82,7 @@ import {
     PlaytBgAudio,
     OnLoadAndRenderPointCloudPly,
     SetViewerApi,
+    GetOrignMetaString,
 } from '../events/EventConstants';
 import { SplatMesh } from '../meshs/splatmesh/SplatMesh';
 import { ModelOptions } from '../modeldata/ModelOptions';
@@ -471,6 +472,7 @@ export class Reall3dViewer {
         } else {
             meta = await genDefaultSceneMeta(sceneUrl);
         }
+        const orignMetaString = JSON.stringify(meta);
 
         if (!meta.url) return console.error('missing lod meta url');
         if (!meta.url.endsWith('.json')) return console.error('The format is unsupported in the large scene mode', meta.url);
@@ -487,6 +489,7 @@ export class Reall3dViewer {
         meta.background && (opts.background = meta.background);
         that.reset({ ...opts });
 
+        on(GetOrignMetaString, () => orignMetaString);
         const baseUrl = getUrl(sceneUrl, location.href);
 
         meta.player?.url && (meta.player.url = getUrl(meta.player.url, baseUrl));
@@ -570,6 +573,8 @@ export class Reall3dViewer {
                 console.warn('meta file fetch failed', e.message, modelOpts.url);
             }
         }
+        const orignMetaString = JSON.stringify(meta);
+        on(GetOrignMetaString, () => orignMetaString);
 
         // 检查整理
         meta.showWatermark = !!meta.showWatermark; // 是否显示水印文字

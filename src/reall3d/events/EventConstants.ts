@@ -632,3 +632,12 @@ export const ViewerUtilsDispose = i++;
 export const WorkerDispose = i++;
 /** 更新Worker相关参数 */
 export const WorkerUpdateParams = i++;
+
+/** 截屏图片 */
+export const GetScreenshotBase64 = i++;
+/** 取原始元数据文本 */
+export const GetOrignMetaString = i++;
+/** 取飞翔轨迹 */
+export const GetFlyingParameters = i++;
+/** 取场景相机信息（含玩家位置） */
+export const GetSceneCameraInfo = i++;

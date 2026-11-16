@@ -30,6 +30,7 @@ import {
     RunLoopByFrame,
     OnViewerDispose,
     IsPlayerMode,
+    GetFlyingParameters,
 } from '../events/EventConstants';
 import { MetaData } from '../modeldata/MetaData';
 import { ScenesJsonData } from '../mapviewer/Reall3dMapViewer';
@@ -48,7 +49,7 @@ export function setupFlying(events: Events) {
     const flyTargets: Vector3[] = [];
     let flyEnable: boolean = false;
     let flyOnceDone: boolean = false;
-    let flyDuration = 125 * 1000;
+    let flyDuration = 120 * 1000;
 
     on(FlyDisable, () => (flyEnable = false));
     on(FlyEnable, () => (flyEnable = true));
@@ -77,7 +78,7 @@ export function setupFlying(events: Events) {
             flyTargets[i] = new Vector3(v3s[i * 3 + 0], v3s[i * 3 + 1], v3s[i * 3 + 2]);
         }
     });
-    on(OnSetFlyDuration, (duration: number = 125 * 1000) => {
+    on(OnSetFlyDuration, (duration: number = 120 * 1000) => {
         flyDuration = duration;
     });
     on(AddFlyPosition, () => {
@@ -146,6 +147,19 @@ export function setupFlying(events: Events) {
             delete meta.flyTargets;
         }
         bSave && (await fire(HttpPostMetaData, meta));
+    });
+
+    on(GetFlyingParameters, () => {
+        if (!flyPositions.length) return {};
+
+        const positions: number[] = [];
+        const targets: number[] = [];
+        for (let i = 0, max = flyPositions.length; i < max; i++) {
+            positions.push(...flyPositions[i].toArray());
+            targets.push(...flyTargets[i].toArray());
+        }
+
+        return { flyDuration, flyPositions: positions, flyTargets: targets };
     });
 
     on(FlyOnce, () => {
