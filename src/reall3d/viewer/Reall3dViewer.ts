@@ -581,6 +581,7 @@ export class Reall3dViewer {
         meta.disableTransitionEffectOnLoad && that.options({ disableTransitionEffectOnLoad: true, pointcloudMode: false });
         meta.disableTransitionEffectOnLoad && that.splatMesh.options({ pointcloudMode: false } as any);
 
+        meta.url && (meta.url = getUrl(meta.url, metaUrl));
         meta.url = meta.url || modelOpts.url;
         if (!modelOpts.format) {
             modelOpts.url = isMetaUrl ? meta.url : modelOpts.url;
