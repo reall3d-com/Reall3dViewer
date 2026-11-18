@@ -7,6 +7,7 @@ import { loadFile } from '../modeldata/loaders/FileLoader';
 import { loopByTime } from '../utils/CommonUtils';
 import { Events } from './Events';
 
+let lastBgMp3Bytes = null;
 /**
  * 全局性的单例事件对象，在此写全局性的通用控制，可在 UI、Viewer、SplatMesh 之间自由穿梭畅通无阻，简洁高效的实现各种功能。
  */
@@ -33,8 +34,8 @@ export const globalEv: Events = (() => {
             return;
         }
 
-        const mp3Bytes: any = await loadFile(mp3 || 'https://reall3d.com/demo-models/demo/background1.mp3');
-        const mp3Url = URL.createObjectURL(new Blob([mp3Bytes], { type: 'application/octet-stream' }));
+        lastBgMp3Bytes = mp3 ? await loadFile(mp3) : lastBgMp3Bytes || (await loadFile('https://reall3d.com/demo-models/demo/background1.mp3'));
+        const mp3Url = URL.createObjectURL(new Blob([lastBgMp3Bytes], { type: 'application/octet-stream' }));
         new AudioLoader().load(
             mp3Url,
             buf => {

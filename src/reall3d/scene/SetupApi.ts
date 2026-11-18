@@ -13,13 +13,16 @@ import {
     GetSceneCameraInfo,
     GetScreenshotBase64,
     MarkUpdateVisible,
+    PlaytBgAudio,
     SetViewerApi,
     SplatSetPointcloudMode,
     SplatSwitchDisplayMode,
     StartAutoRotate,
     StopAutoRotate,
+    StopBgAudio,
 } from '../events/EventConstants';
 import { Events } from '../events/Events';
+import { globalEv } from '../events/GlobalEV';
 import { MetaData } from '../modeldata/MetaData';
 import { Reall3dViewerOptions } from '../viewer/Reall3dViewerOptions';
 import { CameraControls } from './SetupCameraControls';
@@ -69,6 +72,9 @@ export function setupApi(events: Events) {
         $api.getOrignMetaString = () => fire(GetOrignMetaString);
         $api.getFlyingParameters = () => fire(GetFlyingParameters);
         $api.getSceneCameraInfo = () => fire(GetSceneCameraInfo);
+
+        $api.startBgAudio = () => globalEv.fire(PlaytBgAudio, '', true); // 打开默认的背景音乐，循环播放
+        $api.stopBgAudio = () => globalEv.fire(StopBgAudio);
 
         window['$api'] = $api;
     });
