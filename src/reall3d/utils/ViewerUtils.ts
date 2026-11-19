@@ -50,8 +50,8 @@ export function initGsViewerOptions(options: Reall3dViewerOptions): Reall3dViewe
     opts.markVisible ??= true;
     opts.meterScale ??= 1;
     opts.background ??= '#000000';
-    opts.minDistance ??= 0.1;
-    opts.maxDistance ??= 5000;
+    opts.minDistance ??= 0.01;
+    opts.maxDistance ??= 10000;
     opts.qualityLevel ??= QualityLevels.Default5;
     opts.sortType ??= SortTypes.Default1;
     opts.transitionEffect ??= TransitionEffects.ModelCenterCirccle;

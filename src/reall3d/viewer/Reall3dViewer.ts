@@ -14,7 +14,6 @@ import {
     SplatUpdateShDegree,
     ClearMarkPoint,
     CommonUtilsDispose,
-    GetMarkFromWeakRef,
     ViewerDispose,
     Information,
     IsCameraChangedNeedUpdate,
@@ -30,19 +29,15 @@ import {
     SplatSwitchDisplayMode,
     SplatUpdateLightFactor,
     SplatUpdateShowWaterMark,
-    StopAutoRotate,
     TraverseDisposeAndClear,
-    UpdateAllMarkByMeterScale,
     ViewerUtilsDispose,
     ViewerCheckNeedUpdate,
     ViewerSetPointcloudMode,
     OnSetWaterMark,
     GetCachedWaterMark,
-    MetaSaveWatermark,
     AddFlyPosition,
     Flying,
     ClearFlyPosition,
-    FlyDisable,
     GetScene,
     OnViewerBeforeUpdate,
     GetOptions,
@@ -66,7 +61,6 @@ import {
     StopBgAudio,
     ShowJoystick,
     OnViewerDispose,
-    CaptureScreenshot,
     OnFetchStop,
     FocusAabbCenter,
     SplatUpdateFocal,
@@ -78,7 +72,6 @@ import {
     RenderCSS2D3D,
     RenderMinimap,
     LoadCircularAudioMask,
-    RunLoopByFrame,
     PlaytBgAudio,
     OnLoadAndRenderPointCloudPly,
     SetViewerApi,
@@ -90,7 +83,6 @@ import { Events } from '../events/Events';
 import { copyGsViewerOptions, genDefaultSceneMeta, initCamera, initGsViewerOptions, initRenderer } from '../utils/ViewerUtils';
 import { Reall3dViewerOptions } from './Reall3dViewerOptions';
 import { SplatMeshOptions } from '../meshs/splatmesh/SplatMeshOptions';
-import { MarkData } from '../meshs/mark/data/MarkData';
 import { computeCompressionRatio, getUrl, glbKhrGs2Splat, isPointCloudPly, isString, parseRgbPly } from '../utils/CommonUtils';
 import { DecoderPath, isMobile, QualityLevels, SortTypes, ViewerVersion } from '../utils/GlobalConstants';
 import { MetaData } from '../modeldata/MetaData';
@@ -252,7 +244,6 @@ export class Reall3dViewer {
         on(GetCachedWaterMark, () => watermark);
         fire(Information, { scale: `1 : ${fire(GetOptions).meterScale} m` });
 
-        // that.initGsApi();
         fire(SetViewerApi);
     }
 
@@ -305,10 +296,12 @@ export class Reall3dViewer {
             opts.qualityLevel = QualityLevels.Default5; // 兼顾性能使用默认级别
             opts.disableTransitionEffectOnLoad = true; // 不要渐进过渡特效
             opts.pointcloudMode = false;
+            opts.minDistance = 0.01;
             opts.maxDistance = 10000;
             opts.disableRightClickFocus = false;
             opts.viewMode = undefined;
             opts.shDegree = 3;
+            opts.sortType = 1;
             opts.fov = 45;
             that.reset(opts);
             if (isSceneJson) {
@@ -752,86 +745,6 @@ export class Reall3dViewer {
             err => console.error(err),
         );
     }
-
-    // /**
-    //  * 根据需要暴露的接口
-    //  */
-    // private initGsApi() {
-    //     const that = this;
-    //     const fire = (key: number, ...args: any): any => this.events.fire(key, ...args);
-    //     const switchAutoRotate = () => {
-    //         setTimeout(() => window.focus());
-    //         fire(FlyDisable);
-    //         fire(GetControls).autoRotate = fire(GetOptions).autoRotate = !fire(GetOptions).autoRotate;
-    //     };
-    //     const changePointCloudMode = (pointcloudMode: boolean = true) => {
-    //         setTimeout(() => window.focus());
-    //         pointcloudMode = !!pointcloudMode;
-    //         const opts: Reall3dViewerOptions = fire(GetOptions);
-    //         if (opts.pointcloudMode === pointcloudMode) return;
-    //         opts.bigSceneMode ? fire(SplatSetPointcloudMode, pointcloudMode) : fire(SplatSwitchDisplayMode);
-    //     };
-    //     const showMark = (visible: boolean = true) => {
-    //         setTimeout(() => window.focus());
-    //         fire(MarkUpdateVisible, !!visible);
-    //     };
-    //     const startMark = (markType: number): boolean => {
-    //         setTimeout(() => window.focus());
-    //         const opts: Reall3dViewerOptions = fire(GetOptions);
-    //         if (opts.markMode) return false;
-    //         if (markType === 1) {
-    //             opts.markType = 'point';
-    //         } else if (markType === 2) {
-    //             opts.markType = 'lines';
-    //         } else if (markType === 3) {
-    //             opts.markType = 'plans';
-    //         } else if (markType === 4) {
-    //             opts.markType = 'distance';
-    //         } else {
-    //             return false;
-    //         }
-    //         opts.markMode = true;
-    //         fire(StopAutoRotate);
-    //         return true;
-    //     };
-    //     const deleteMark = async (name: string): Promise<boolean> => {
-    //         setTimeout(() => window.focus());
-    //         if (!name) return false;
-    //         fire(GetMarkFromWeakRef, name)?.dispose();
-    //         fire(ViewerNeedUpdate);
-    //         return await fire(MetaMarkSaveData);
-    //     };
-    //     const updateMark = async (data: MarkData, saveData: boolean = true): Promise<boolean> => {
-    //         fire(UpdateAllMarkByMeterScale, data, saveData);
-    //         fire(GetMarkFromWeakRef, data?.name)?.drawUpdate?.(data, saveData);
-    //         fire(ViewerNeedUpdate);
-    //         if (saveData) {
-    //             setTimeout(() => window.focus());
-    //             return await fire(MetaMarkSaveData);
-    //         }
-    //         return true;
-    //     };
-    //     const showWaterMark = (visible: boolean = true) => {
-    //         setTimeout(() => window.focus());
-    //         that.splatMesh.fire(SplatUpdateShowWaterMark, !!visible);
-    //     };
-    //     const setWaterMark = (text: string, save: boolean = true) => {
-    //         fire(OnSetWaterMark, text);
-    //         save && fire(MetaSaveWatermark, text);
-    //     };
-    //     const captureScreenshot = () => fire(CaptureScreenshot);
-    //     window['$api'] = {
-    //         captureScreenshot,
-    //         switchAutoRotate,
-    //         changePointCloudMode,
-    //         showMark,
-    //         startMark,
-    //         deleteMark,
-    //         updateMark,
-    //         showWaterMark,
-    //         setWaterMark,
-    //     };
-    // }
 
     /**
      * 销毁渲染器不再使用
