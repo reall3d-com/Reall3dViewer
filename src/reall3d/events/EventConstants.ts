@@ -133,6 +133,8 @@ export const GetCSS3DRenderer = i++;
 export const GetCurrentDisplayShDegree = i++;
 /** 取层级纹理 */
 export const GetDataArrayTexture = i++;
+/** 取飞翔轨迹 */
+export const GetFlyingParameters = i++;
 /** 取相机飞行轨迹（数组形式，用于存盘） */
 export const GetFlyPositionArray = i++;
 /** 取相机飞行轨迹 */
@@ -147,9 +149,9 @@ export const GetFpsDefault = i++;
 export const GetFpsReal = i++;
 /** 取高斯文本 */
 export const GetGaussianText = i++;
+
 /** 取大场景活动点 */
 export const GetLodActiveXyz = i++;
-
 /** 取LOD数据信息 */
 export const GetLodDataInfo = i++;
 /** 模型数据的球谐系数级别 */
@@ -168,11 +170,13 @@ export const GetMaxRenderCount = i++;
 export const GetMeta = i++;
 /** 取元数据中配置的矩阵 */
 export const GetMetaMatrix = i++;
+
 /** 模型数据的球谐系数级别 */
 export const GetModelShDegree = i++;
-
 /** 取得渲染器选项 */
 export const GetOptions = i++;
+/** 取原始元数据文本 */
+export const GetOrignMetaString = i++;
 /** 取玩家 */
 export const GetPlayer = i++;
 /** 取渲染器 */
@@ -181,8 +185,13 @@ export const GetRenderer = i++;
 export const GetRenderQualityLevel = i++;
 /** 取场景 */
 export const GetScene = i++;
+/** 取场景相机信息（含玩家位置） */
+export const GetSceneCameraInfo = i++;
+/** 截屏图片 */
+export const GetScreenshotBase64 = i++;
 /** 取ShaderMaterial */
 export const GetShaderMaterial = i++;
+
 /** 球谐系数纹理高度 */
 export const GetShTexheight = i++;
 /** 取设定的排序类型 */
@@ -191,7 +200,6 @@ export const GetSortType = i++;
 export const GetSortWorker = i++;
 /** 取活动点数据 */
 export const GetSplatActivePoints = i++;
-
 /** 取Splat几何体 */
 export const GetSplatGeometry = i++;
 /** 取Splat材质 */
@@ -204,6 +212,7 @@ export const GetSplatShaderDefines = i++;
 export const GetSplatTiles = i++;
 /** 取视图投影矩阵 */
 export const GetViewProjectionMatrix = i++;
+
 /** 取视图投影矩阵数组 */
 export const GetViewProjectionMatrixArray = i++;
 /** 提交元数据到服务器 */
@@ -212,7 +221,6 @@ export const HttpPostMetaData = i++;
 export const HttpQueryGaussianText = i++;
 /** 增加相机Fov */
 export const IncreaseCameraFov = i++;
-
 /** 渲染信息 */
 export const Information = i++;
 /** 物理相交检测 */
@@ -225,6 +233,7 @@ export const IsCameraChangedNeedLoadData = i++;
 export const IsCameraChangedNeedUpdate = i++;
 /** 是否看见 */
 export const IsCameraLookAtPoint = i++;
+
 /** 控制平面是否可见 */
 export const IsControlPlaneVisible = i++;
 /** 是否调试模式 */
@@ -233,7 +242,6 @@ export const IsDebugMode = i++;
 export const IsDefaultPipeline = i++;
 /** 是否加载中（小场景适用） */
 export const IsFetching = i++;
-
 /** 是否飞行模式 */
 export const IsFlyMode = i++;
 /** 是否下载中 */
@@ -246,6 +254,7 @@ export const IsPlayerMode1 = i++;
 export const IsPlayerMode3 = i++;
 /** 是否点云模式 */
 export const IsPointcloudMode = i++;
+
 /** 是否在前方 */
 export const IsPointInFront = i++;
 /** 数据是否已下载结束并准备就绪（小场景适用） */
@@ -254,7 +263,6 @@ export const IsSmallSceneRenderDataReady = i++;
 export const IsSmallSceneShowDone = i++;
 /** SplatMesh是否已创建 */
 export const IsSplatMeshCreated = i++;
-
 /** 是否完成初次渲染 */
 export const IsSplatShowDone = i++;
 /** 检查执行键盘按键动作处理 */
@@ -267,6 +275,7 @@ export const LoaderModelStart = i++;
 export const LoadSmallSceneMetaData = i++;
 /** 大场景添加LOD元数据 */
 export const LodDownloadAddLodMeta = i++;
+
 /** 销毁 */
 export const LodDownloadManagerDispose = i++;
 /** 创建地图相机 */
@@ -275,7 +284,6 @@ export const MapCreateCamera = i++;
 export const MapCreateControls = i++;
 /** 创建光源 */
 export const MapCreateDirLight = i++;
-
 /** 创建地图渲染器 */
 export const MapCreateRenderer = i++;
 /** 创建地图场景 */
@@ -288,6 +296,7 @@ export const MapGetSplatMesh = i++;
 export const MapSceneTraverseDispose = i++;
 /** 对多个SplatMesh实例的渲染顺序进行排序 */
 export const MapSortSplatMeshRenderOrder = i++;
+
 /** 按X轴平移 */
 export const MapSplatMeshMoveX = i++;
 /** 按Y轴平移 */
@@ -296,7 +305,6 @@ export const MapSplatMeshMoveY = i++;
 export const MapSplatMeshMoveZ = i++;
 /** 按X轴旋转 */
 export const MapSplatMeshRotateX = i++;
-
 /** 按Y轴旋转 */
 export const MapSplatMeshRotateY = i++;
 /** 按Z轴旋转 */
@@ -309,6 +317,7 @@ export const MapSplatMeshScale = i++;
 export const MapSplatMeshSetPosition = i++;
 /** 切换显示隐藏 */
 export const MapSplatMeshShowHide = i++;
+
 /** 标注面积 */
 export const MarkArea = i++;
 /** 标注距离 */
@@ -317,7 +326,6 @@ export const MarkDistance = i++;
 export const MarkFinish = i++;
 /** 标注线 */
 export const MarkLine = i++;
-
 /** 标注面 */
 export const MarkPlan = i++;
 /** 标注点 */
@@ -330,6 +338,7 @@ export const MetaMarkRemoveData = i++;
 export const MetaMarkSaveData = i++;
 /** 保存小场景相机信息 */
 export const MetaSaveSmallSceneCameraInfo = i++;
+
 /** 保存水印 */
 export const MetaSaveWatermark = i++;
 /** 移动玩家(前后左右) */
@@ -338,7 +347,6 @@ export const MovePlayer = i++;
 export const MovePlayerByAngle = i++;
 /** 移动玩家(到目标点) */
 export const MovePlayerToTarget = i++;
-
 /** 通知渲染器需要刷新 */
 export const NotifyViewerNeedUpdate = i++;
 /** 通知回传 */
@@ -351,6 +359,7 @@ export const NotifyWkA01BackXyzIndex = i++;
 export const NotifyWkA01CalcTargetLayer = i++;
 /** 通知销毁 */
 export const NotifyWkA01ReleaseSplatFile = i++;
+
 /** 通知设定 */
 export const NotifyWkA01SetTextureSize = i++;
 /** 通知就绪 */
@@ -359,7 +368,6 @@ export const NotifyWkA09DblTextureReady = i++;
 export const NotifyWkA09SglTextureReady = i++;
 /** 排序 */
 export const NotifyWkA09Sort = i++;
-
 /** 全量模式通知更新排序用数据 */
 export const NotifyWkA09SortPart = i++;
 /** 单纯的鼠标移动 */
@@ -372,6 +380,7 @@ export const OnFetchStart = i++;
 export const OnFetchStop = i++;
 /** 按元数据初始化标记 */
 export const OnInitMarks = i++;
+
 /** 渲染obj模型 */
 export const OnLoadAndRenderObj = i++;
 /** 渲染ply点云模型 */
@@ -380,7 +389,6 @@ export const OnLoadAndRenderPointCloudPly = i++;
 export const OnMetaDataLoaded = i++;
 /** 更新质量级别 */
 export const OnQualityLevelChanged = i++;
-
 /** 设定飞行时长 */
 export const OnSetFlyDuration = i++;
 /** 设定相机飞行轨迹 */
@@ -393,6 +401,7 @@ export const OnSetWaterMark = i++;
 export const OnSmallSceneShowDone = i++;
 /** LOD全部上传完成 */
 export const OnSplatLodFullUploaded = i++;
+
 /** Lod场景首次加载显示 */
 export const OnStartLodShown = i++;
 /** 数据上传就绪的渲染数（小场景适用） */
@@ -401,7 +410,6 @@ export const OnTextureReadySplatCount = i++;
 export const OnUploadDblIndexDone = i++;
 /** 渲染后处理 */
 export const OnViewerAfterUpdate = i++;
-
 /** 渲染前处理 */
 export const OnViewerBeforeUpdate = i++;
 /** 渲染器销毁 */
@@ -414,6 +422,7 @@ export const PhysicsAddMesh = i++;
 export const PhysicsAddStaticCollisionGlb = i++;
 /** 添加动态物理Mesh */
 export const PhysicsAdDynamicMesh = i++;
+
 /** 物理扫球调整相机 */
 export const PhysicsAdjustCameraByCastShape = i++;
 /** 添加静态物理Mesh */
@@ -422,7 +431,6 @@ export const PhysicsAdStaticMesh = i++;
 export const PhysicsEnableDebug = i++;
 /** 取物理环境刚体 */
 export const PhysicsGetEnvCollision = i++;
-
 /** 取目标点相交检测用对象数组（虚拟地面及静态刚体） */
 export const PhysicsGetGroundCollision = i++;
 /** 物理虚拟角色控制器 */
@@ -435,6 +443,7 @@ export const PhysicsRemoveMesh = i++;
 export const PlaytBgAudio = i++;
 /** 打印信息（开发调试用） */
 export const PrintInfo = i++;
+
 /** 回放缓存 */
 export const PushCacheXyzIndex = i++;
 /** 射线与点的距离 */
@@ -443,7 +452,6 @@ export const RaycasterRayDistanceToPoint = i++;
 export const RaycasterRayIntersectMarks = i++;
 /** 射线拾取点 */
 export const RaycasterRayIntersectPoints = i++;
-
 /** 按数据重新计算多个平面的面积 */
 export const ReComputePlansArea = i++;
 /** 渲染CSS2D3D对象 */
@@ -456,6 +464,7 @@ export const RotateAt = i++;
 export const RotateLeft = i++;
 /** 视线轴右旋 */
 export const RotateRight = i++;
+
 /** 帧率循环调用 */
 export const RunLoopByFrame = i++;
 /** 定时循环调用 */
@@ -464,7 +473,6 @@ export const RunLoopByTime = i++;
 export const SelectMarkPoint = i++;
 /** 调整视点为拾取点 */
 export const SelectPointAndLookAt = i++;
-
 /** 背景音乐音量渐进调小 */
 export const SetBgAudioVolumeDown = i++;
 /** 背景音乐音量渐进调大 */
@@ -477,6 +485,7 @@ export const SetGaussianText = i++;
 export const SetTexdataChangeLastTime = i++;
 /** 设定渲染器外部接口 */
 export const SetViewerApi = i++;
+
 /** 显示虚拟摇杆 */
 export const ShowJoystick = i++;
 /** 下载解析高斯数据 */
@@ -485,7 +494,6 @@ export const SplatDataFetcher = i++;
 export const SplatDataManagerAddModel = i++;
 /** 销毁 */
 export const SplatDataManagerDispose = i++;
-
 /** Splat几何体销毁 */
 export const SplatGeometryDispose = i++;
 /** Splat材质销毁 */
@@ -498,6 +506,7 @@ export const SplatMeshDispose = i++;
 export const SplatMeshSwitchDisplayMode = i++;
 /** 更新包围盒数据 */
 export const SplatSetBoundBoxVisible = i++;
+
 /** 渲染器设定Splat点云模式 */
 export const SplatSetPointcloudMode = i++;
 /** 渲染器切换Splat显示模式 */
@@ -506,7 +515,6 @@ export const SplatSwitchDisplayMode = i++;
 export const SplatTexdataManagerAddSplatLod = i++;
 /** 数据是否有变化（大场景用） */
 export const SplatTexdataManagerDataChanged = i++;
-
 /** Splat更新活动标记 */
 export const SplatUpdateActiveFlagValue = i++;
 /** Splat更新场景模式 */
@@ -519,6 +527,7 @@ export const SplatUpdateCurrentLightRadius = i++;
 export const SplatUpdateCurrentVisibleRadius = i++;
 /** Splat更新双缓冲纹理 */
 export const SplatUpdateDblTexture = i++;
+
 /** Splat更新调试效果 */
 export const SplatUpdateDebugEffect = i++;
 /** Splat更新标记 */
@@ -527,7 +536,6 @@ export const SplatUpdateFlagValue = i++;
 export const SplatUpdateFocal = i++;
 /** Splat更新亮度系数 */
 export const SplatUpdateLightFactor = i++;
-
 /** Splat更新标记点 */
 export const SplatUpdateMarkPoint = i++;
 /** 更新包围球半径 */
@@ -540,6 +548,7 @@ export const SplatUpdateMinMaxPixelDiameter = i++;
 export const SplatUpdateParticleMode = i++;
 /** Splat更新动作时间 */
 export const SplatUpdatePerformanceAct = i++;
+
 /** Splat更新系统时间 */
 export const SplatUpdatePerformanceNow = i++;
 /** Splat更新点云模式 */
@@ -548,7 +557,6 @@ export const SplatUpdatePointMode = i++;
 export const SplatUpdateSglTexture = i++;
 /** Splat更新球谐系数纹理(1,2级) */
 export const SplatUpdateSh12Texture = i++;
-
 /** Splat更新球谐系数纹理(3级) */
 export const SplatUpdateSh3Texture = i++;
 /** Splat更新球谐系数级别 */
@@ -561,6 +569,7 @@ export const SplatUpdateShPalettesReady = i++;
 export const SplatUpdateShPalettesTexture = i++;
 /** Splat更新索引缓冲数据 */
 export const SplatUpdateSplatIndex = i++;
+
 /** Splat更新中心高点 */
 export const SplatUpdateTopY = i++;
 /** Splat更新特效类型 */
@@ -569,7 +578,6 @@ export const SplatUpdateTransitionEffect = i++;
 export const SplatUpdateUseLod = i++;
 /** 更新是否使用近似计算替代exp的标记 */
 export const SplatUpdateUseSimilarExp = i++;
-
 /** Splat更新使用中索引 */
 export const SplatUpdateUsingIndex = i++;
 /** Splat更新视口 */
@@ -582,6 +590,7 @@ export const StartAutoRotate = i++;
 export const StopAutoRotate = i++;
 /** 停止背景音乐 */
 export const StopBgAudio = i++;
+
 /** 待下载 */
 export const TodoDownloadLod = i++;
 /** 遍历销毁并清空Object3D的子对象 */
@@ -590,7 +599,6 @@ export const TraverseDisposeAndClear = i++;
 export const TriggerLoadSmallSceneData = i++;
 /** 触发刷新 */
 export const TriggerWkA01Refresh = i++;
-
 /** 相机飞行控制 */
 export const TweenFly = i++;
 /** 禁止相机飞行控制 */
@@ -603,6 +611,7 @@ export const TweenFlyOnce = i++;
 export const UpdateAllMarkByMeterScale = i++;
 /** 更新加载状态（无进度条） */
 export const UpdateFetchStatus = i++;
+
 /** 更新提示目标状态 */
 export const UpdateIndicatorTargetStatus = i++;
 /** 按数据更新指定名称的标注 */
@@ -611,7 +620,6 @@ export const UpdateMarkByName = i++;
 export const UpdateQualityLevel = i++;
 /** 更新排序类型 */
 export const UpdateSortType = i++;
-
 /** 更新虚拟地面位置 */
 export const UpdateVirtualGroundPosition = i++;
 /** 上传纹理 */
@@ -624,6 +632,7 @@ export const ViewerCheckNeedUpdate = i++;
 export const ViewerDispose = i++;
 /** 通知渲染器需要刷新 */
 export const ViewerNeedUpdate = i++;
+
 /** 更新渲染器选项的点云模式 */
 export const ViewerSetPointcloudMode = i++;
 /** 销毁 */
@@ -632,12 +641,3 @@ export const ViewerUtilsDispose = i++;
 export const WorkerDispose = i++;
 /** 更新Worker相关参数 */
 export const WorkerUpdateParams = i++;
-
-/** 截屏图片 */
-export const GetScreenshotBase64 = i++;
-/** 取原始元数据文本 */
-export const GetOrignMetaString = i++;
-/** 取飞翔轨迹 */
-export const GetFlyingParameters = i++;
-/** 取场景相机信息（含玩家位置） */
-export const GetSceneCameraInfo = i++;
