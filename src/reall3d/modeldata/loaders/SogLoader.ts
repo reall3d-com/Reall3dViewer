@@ -9,6 +9,7 @@ import { parseSplatToTexdata, parseSpxBlockData } from '../wasm/WasmParser';
 import { loadFile } from './FileLoader';
 
 const SQRT2 = Math.sqrt(2.0);
+const HALF_PI = Math.PI / 2;
 
 export async function loadSog(model: SplatModel) {
     try {
@@ -123,6 +124,7 @@ export async function loadSog(model: SplatModel) {
 }
 
 async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, meta: any) {
+    const sogVersion = meta.version || 1;
     const isV1 = !meta.version || meta.version === 1;
     const cntSplat: number = isV1 ? meta.means.shape[0] : meta.count;
     const limitCnt = Math.min(cntSplat, model.fetchLimit);
@@ -166,12 +168,69 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
         }
     }
 
+    const fnParser = sogVersion === 1 ? parseSogV1 : sogVersion === 2 ? parseSogV2 : parseSogV3;
     while (limitCnt > model.dataSplatCount) {
-        const data: Uint8Array = isV1 ? await parseSogV1(model.dataSplatCount) : await parseSogV2(model.dataSplatCount);
+        const data: Uint8Array = await fnParser(model.dataSplatCount);
         model.splatData.set(data.subarray(0), model.dataSplatCount * 32);
         updateModelMinMax(model, data);
         model.dataSplatCount += data.byteLength / 32;
         model.downloadSplatCount = model.dataSplatCount;
+    }
+
+    async function parseSogV3(startCnt: number): Promise<Uint8Array> {
+        const maxCnt = Math.min(startCnt + MaxProcessCnt, limitCnt);
+        const processCnt = maxCnt - startCnt;
+
+        const ui8sData = new Uint8Array(processCnt * 32);
+        const f32sData = new Float32Array(ui8sData.buffer);
+
+        for (let i = startCnt, n = 0; i < maxCnt; i++) {
+            let fx = ((meansu[i * 4 + 0] << 8) | meansl[i * 4 + 0]) / 65535;
+            let fy = ((meansu[i * 4 + 1] << 8) | meansl[i * 4 + 1]) / 65535;
+            let fz = ((meansu[i * 4 + 2] << 8) | meansl[i * 4 + 2]) / 65535;
+            let x = meta.means.mins[0] + (meta.means.maxs[0] - meta.means.mins[0]) * fx;
+            let y = meta.means.mins[1] + (meta.means.maxs[1] - meta.means.mins[1]) * fy;
+            let z = meta.means.mins[2] + (meta.means.maxs[2] - meta.means.mins[2]) * fz;
+            x = Math.sign(x) * (Math.exp(Math.abs(x)) - 1);
+            y = Math.sign(y) * (Math.exp(Math.abs(y)) - 1);
+            z = Math.sign(z) * (Math.exp(Math.abs(z)) - 1);
+
+            let sx = Math.exp(meta.scales.codebook[scales[i * 4 + 0]]);
+            let sy = Math.exp(meta.scales.codebook[scales[i * 4 + 1]]);
+            let sz = Math.exp(meta.scales.codebook[scales[i * 4 + 2]]);
+
+            const { rw, rx, ry, rz } = decodeRotationsExpMap(quats[i * 4], quats[i * 4 + 1], quats[i * 4 + 2]);
+
+            let r = meta.sh0.codebook[sh0[i * 4 + 0]];
+            let g = meta.sh0.codebook[sh0[i * 4 + 1]];
+            let b = meta.sh0.codebook[sh0[i * 4 + 2]];
+            let a = sh0[i * 4 + 3];
+
+            f32sData[n * 8 + 0] = x;
+            f32sData[n * 8 + 1] = y;
+            f32sData[n * 8 + 2] = z;
+            f32sData[n * 8 + 3] = sx;
+            f32sData[n * 8 + 4] = sy;
+            f32sData[n * 8 + 5] = sz;
+            ui8sData[n * 32 + 24] = clipUint8((0.5 + SH_C0 * r) * 255);
+            ui8sData[n * 32 + 25] = clipUint8((0.5 + SH_C0 * g) * 255);
+            ui8sData[n * 32 + 26] = clipUint8((0.5 + SH_C0 * b) * 255);
+            ui8sData[n * 32 + 27] = a;
+            ui8sData[n * 32 + 28] = clipUint8(rw * 128.0 + 128.0);
+            ui8sData[n * 32 + 29] = clipUint8(rx * 128.0 + 128.0);
+            ui8sData[n * 32 + 30] = clipUint8(ry * 128.0 + 128.0);
+            ui8sData[n * 32 + 31] = clipUint8(rz * 128.0 + 128.0);
+            n++;
+        }
+
+        const rs = await parseSplatToTexdata(ui8sData, processCnt);
+        if (shDegree > 0 && labels?.byteLength) {
+            for (let i = 0; i < processCnt; i++) {
+                rs[i * 32 + 12] = labels[(i + startCnt) * 4];
+                rs[i * 32 + 13] = labels[(i + startCnt) * 4 + 1];
+            }
+        }
+        return rs;
     }
 
     async function parseSogV2(startCnt: number): Promise<Uint8Array> {
@@ -282,6 +341,20 @@ async function parseSog(model: SplatModel, mapFile: Map<string, Uint8Array>, met
             rz = ri;
         }
 
+        return { rw, rx, ry, rz };
+    }
+
+    function decodeRotationsExpMap(a: number, b: number, c: number) {
+        const px = (a - 128) / 127;
+        const py = (b - 128) / 127;
+        const pz = (c - 128) / 127;
+        const r = Math.sqrt(px * px + py * py + pz * pz);
+        const t = HALF_PI * r;
+        const k = r > 1e-12 ? Math.sin(t) / r : HALF_PI;
+        const rw = Math.cos(t);
+        const rx = px * k;
+        const ry = py * k;
+        const rz = pz * k;
         return { rw, rx, ry, rz };
     }
 
