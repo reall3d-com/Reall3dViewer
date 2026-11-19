@@ -2,7 +2,6 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import {
-    CaptureScreenshot,
     FlyDisable,
     Flying,
     GetControls,

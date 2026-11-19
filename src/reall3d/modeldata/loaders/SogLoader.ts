@@ -3,7 +3,7 @@
 // ==============================================
 import { Vector3 } from 'three';
 import { clipUint8, computeCompressionRatio, uint8ArrayToString, unzipToMap, webpToRgba } from '../../utils/CommonUtils';
-import { isMobile, MaxProcessCnt, SH_C0, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
+import { MaxProcessCnt, SH_C0, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSplatToTexdata, parseSpxBlockData } from '../wasm/WasmParser';
 import { loadFile } from './FileLoader';

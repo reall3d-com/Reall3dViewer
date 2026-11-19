@@ -26,8 +26,6 @@ import {
     OnFetchStop,
     OnLoadAndRenderObj,
     OnLoadAndRenderPointCloudPly,
-    MarkUpdateVisible,
-    LoadSmallSceneMetaData,
     GetScreenshotBase64,
     GetRenderer,
     GetCamera,

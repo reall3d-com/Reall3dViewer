@@ -2,8 +2,8 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import { Vector3 } from 'three';
-import { clipUint8, encodeSplatSH, isPointCloudPly } from '../../utils/CommonUtils';
-import { isMobile, MaxProcessCnt, SH_C0, SpxBlockFormatSH1, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
+import { clipUint8, encodeSplatSH } from '../../utils/CommonUtils';
+import { MaxProcessCnt, SH_C0, SpxBlockFormatSH1, SpxBlockFormatSH2, SpxBlockFormatSH3 } from '../../utils/GlobalConstants';
 import { ModelStatus, SplatModel } from '../ModelData';
 import { parseSplatToTexdata, parseSpxBlockData } from '../wasm/WasmParser';
 
