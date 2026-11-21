@@ -132,18 +132,17 @@ EXTERN EMSCRIPTEN_KEEPALIVE int s(void *b, int n) {
         sz = (f32sInput[i * 8 + 5]);
         rgba = ui32sInput[i * 8 + 6];
 
-        // xyzw
-        rx = ui8sInput[i * 32 + 28];
-        ry = ui8sInput[i * 32 + 29];
-        rz = ui8sInput[i * 32 + 30];
-        rw = ui8sInput[i * 32 + 31];
+        rw = ui8sInput[i * 32 + 28];
+        rx = ui8sInput[i * 32 + 29];
+        ry = ui8sInput[i * 32 + 30];
+        rz = ui8sInput[i * 32 + 31];
 
+        RW = ((float)rw - 128.0) / 128.0;
         RX = ((float)rx - 128.0) / 128.0;
         RY = ((float)ry - 128.0) / 128.0;
         RZ = ((float)rz - 128.0) / 128.0;
-        RW = ((float)rw - 128.0) / 128.0;
 
-        computeWriteTexdata(b, i * 8, x, y, z, sx, sy, sz, RX, RY, RZ, RW, rgba, 0);
+        computeWriteTexdata(b, i * 8, x, y, z, sx, sy, sz, RW, RX, RY, RZ, rgba, 0);
     }
 
     return 0;
@@ -441,6 +440,96 @@ int spxSh3(void *o, void *b) {
 }
 
 /**
+ * 把spx【21】格式的数据块解析为纹理
+ * @param o: 输出用字节数组（纹理32*n）
+ * @param b: 输入的块字节数组
+ *           【21】点数4 + 格式4 + 数据19*n或21*n
+ *           数据排列 [x0...]+[y0...]+[z0...]+[x1...]+[y1...]+[z1...]+[x2...]+[y2...]+[z2...]+[sx...]+[sy...]+[sz...]+[r...]+[g...]+[b...]+[a...]+[rx...]+[ry...]+[rz...]
+ *                  +[p0...]+[p1...] (球谐系数级别大于0时存在)
+ * @param d: 球谐系数级别（0~3）
+ * @return: 0-成功
+ */
+int spxSplat21(void *o, void *b, int d) {
+    uint8_t *ui8sInput = (uint8_t *)b;
+    uint32_t *ui32sInput = (uint32_t *)b;
+
+    int n = (int)ui32sInput[0];
+    int offsetBit = 8;
+
+    const float HALF_PI = 1.57079633f;
+    float x, y, z, sx, sy, sz, RX, RY, RZ, RW;
+    uint32_t rgba;
+    uint8_t x0, x1, x2, y0, y1, y2, z0, z1, z2, s0, s1, s2, R, G, B, A, rx, ry, rz, rw, p0, p1;
+    int32_t i32x, i32y, i32z;
+    uint32_t pi = 0;
+    for (int i = 0; i < n; i++) {
+        x0 = ui8sInput[offsetBit + i];
+        y0 = ui8sInput[offsetBit + n * 1 + i];
+        z0 = ui8sInput[offsetBit + n * 2 + i];
+        x1 = ui8sInput[offsetBit + n * 3 + i];
+        y1 = ui8sInput[offsetBit + n * 4 + i];
+        z1 = ui8sInput[offsetBit + n * 5 + i];
+        x2 = ui8sInput[offsetBit + n * 6 + i];
+        y2 = ui8sInput[offsetBit + n * 7 + i];
+        z2 = ui8sInput[offsetBit + n * 8 + i];
+
+        s0 = ui8sInput[offsetBit + n * 9 + i];
+        s1 = ui8sInput[offsetBit + n * 10 + i];
+        s2 = ui8sInput[offsetBit + n * 11 + i];
+
+        R = ui8sInput[offsetBit + n * 12 + i];
+        G = ui8sInput[offsetBit + n * 13 + i];
+        B = ui8sInput[offsetBit + n * 14 + i];
+        A = ui8sInput[offsetBit + n * 15 + i];
+
+        rx = ui8sInput[offsetBit + n * 16 + i];
+        ry = ui8sInput[offsetBit + n * 17 + i];
+        rz = ui8sInput[offsetBit + n * 18 + i];
+
+        if (d > 0) {
+            p0 = ui8sInput[offsetBit + n * 19 + i];
+            p1 = ui8sInput[offsetBit + n * 20 + i];
+            pi = p0 | (p1 << 8);
+        }
+
+        i32x = (x0 | (x1 << 8) | (x2 << 16));
+        if (i32x & 0x800000)
+            i32x |= 0xFF000000;
+        i32y = (y0 | (y1 << 8) | (y2 << 16));
+        if (i32y & 0x800000)
+            i32y |= 0xFF000000;
+        i32z = (z0 | (z1 << 8) | (z2 << 16));
+        if (i32z & 0x800000)
+            i32z |= 0xFF000000;
+
+        x = static_cast<float>(i32x) / 4096.0f;
+        y = static_cast<float>(i32y) / 4096.0f;
+        z = static_cast<float>(i32z) / 4096.0f;
+
+        sx = std::exp((float)s0 / 16.0f - 10.0f);
+        sy = std::exp((float)s1 / 16.0f - 10.0f);
+        sz = std::exp((float)s2 / 16.0f - 10.0f);
+
+        rgba = (A << 24) | (B << 16) | (G << 8) | R;
+
+        float px = (float)rx / 128.0f - 1.0f;
+        float py = (float)ry / 128.0f - 1.0f;
+        float pz = (float)rz / 128.0f - 1.0f;
+        float r = std::sqrt(px * px + py * py + pz * pz);
+        float t = HALF_PI * r;
+        float k = r > 1e-12f ? (k = std::sin(t) / r) : HALF_PI;
+        RW = std::cos(t);
+        RX = px * k;
+        RY = py * k;
+        RZ = pz * k;
+
+        computeWriteTexdata(o, i * 8, x, y, z, sx, sy, sz, RW, RX, RY, RZ, rgba, pi);
+    }
+
+    return 0;
+}
+
+/**
  * 把spx【22|23】格式的数据块解析为纹理
  * @param o: 输出用字节数组（纹理32*n）
  * @param b: 输入的块字节数组
@@ -635,9 +724,104 @@ int spxSplat220(void *o, void *b, int d, int e) {
 }
 
 /**
+ * 把spx【210】格式的数据块解析为纹理
+ * @param o: 输出用字节数组（纹理32*n）
+ * @param b: 输入的块字节数组
+ *           【210】点数4 + 格式4 + 数据24*n或28*n
+ *           数据排列 [x0,y0,z0,255...x1,y1,z1,255...x2,y2,z2,255...]+[sx,sy,sz,255...]+[r,g,b,a...]+[rx,ry,rz,255...]+[p0,p1,0,255...]
+ *                  +[p0,p1,0,255...] (球谐系数级别大于0时存在)
+ * @param d: 球谐系数级别（0~3）
+ * @return: 0-成功
+ */
+int spxSplat210(void *o, void *b, int d) {
+    uint8_t *ui8sInput = (uint8_t *)b;
+    uint32_t *ui32sInput = (uint32_t *)b;
+
+    int n = (int)ui32sInput[0];
+    int offsetBit = 8;
+
+    const float HALF_PI = 1.57079633f;
+    const float SQRT2 = 1.4142135623730951f;
+    float x, y, z, sx, sy, sz, RX, RY, RZ, RW, RI;
+    uint32_t rgba;
+    uint8_t x0, x1, x2, y0, y1, y2, z0, z1, z2, s0, s1, s2, R, G, B, A, rx, ry, rz, ri, p0, p1;
+    int32_t i32x, i32y, i32z;
+    uint32_t pi = 0;
+    for (int i = 0; i < n; i++) {
+        x0 = ui8sInput[offsetBit + i * 4 + 0];
+        y0 = ui8sInput[offsetBit + i * 4 + 1];
+        z0 = ui8sInput[offsetBit + i * 4 + 2];
+        x1 = ui8sInput[offsetBit + n * 4 + i * 4 + 0];
+        y1 = ui8sInput[offsetBit + n * 4 + i * 4 + 1];
+        z1 = ui8sInput[offsetBit + n * 4 + i * 4 + 2];
+        x2 = ui8sInput[offsetBit + n * 8 + i * 4 + 0];
+        y2 = ui8sInput[offsetBit + n * 8 + i * 4 + 1];
+        z2 = ui8sInput[offsetBit + n * 8 + i * 4 + 2];
+
+        s0 = ui8sInput[offsetBit + n * 12 + i * 4 + 0];
+        s1 = ui8sInput[offsetBit + n * 12 + i * 4 + 1];
+        s2 = ui8sInput[offsetBit + n * 12 + i * 4 + 2];
+
+        R = ui8sInput[offsetBit + n * 16 + i * 4 + 0];
+        G = ui8sInput[offsetBit + n * 16 + i * 4 + 1];
+        B = ui8sInput[offsetBit + n * 16 + i * 4 + 2];
+        A = ui8sInput[offsetBit + n * 16 + i * 4 + 3];
+
+        rx = ui8sInput[offsetBit + n * 20 + i * 4 + 0];
+        ry = ui8sInput[offsetBit + n * 20 + i * 4 + 1];
+        rz = ui8sInput[offsetBit + n * 20 + i * 4 + 2];
+        ri = ui8sInput[offsetBit + n * 20 + i * 4 + 3];
+
+        if (d > 0) {
+            p0 = ui8sInput[offsetBit + n * 24 + i * 4 + 0];
+            p1 = ui8sInput[offsetBit + n * 24 + i * 4 + 1];
+            pi = p0 | (p1 << 8);
+        }
+
+        i32x = (x0 | (x1 << 8) | (x2 << 16));
+        if (i32x & 0x800000)
+            i32x |= 0xFF000000;
+        i32y = (y0 | (y1 << 8) | (y2 << 16));
+        if (i32y & 0x800000)
+            i32y |= 0xFF000000;
+        i32z = (z0 | (z1 << 8) | (z2 << 16));
+        if (i32z & 0x800000)
+            i32z |= 0xFF000000;
+
+        x = static_cast<float>(i32x) / 4096.0f;
+        y = static_cast<float>(i32y) / 4096.0f;
+        z = static_cast<float>(i32z) / 4096.0f;
+
+        sx = std::exp((float)s0 / 16.0f - 10.0f);
+        sy = std::exp((float)s1 / 16.0f - 10.0f);
+        sz = std::exp((float)s2 / 16.0f - 10.0f);
+
+        rgba = (A << 24) | (B << 16) | (G << 8) | R;
+
+        // expmap
+        float px = (float)rx / 128.0f - 1.0f;
+        float py = (float)ry / 128.0f - 1.0f;
+        float pz = (float)rz / 128.0f - 1.0f;
+        float r = std::sqrt(px * px + py * py + pz * pz);
+        float t = HALF_PI * r;
+        float k = r > 1e-12f ? (k = std::sin(t) / r) : HALF_PI;
+        RW = std::cos(t);
+        RX = px * k;
+        RY = py * k;
+        RZ = pz * k;
+
+        computeWriteTexdata(o, i * 8, x, y, z, sx, sy, sz, RW, RX, RY, RZ, rgba, pi);
+    }
+
+    return 0;
+}
+
+/**
  * 把spx格式的数据块解析为纹理
  * @param o: 输出用字节数组（纹理32*n或球谐系数16*n）
  * @param b: 输入的块字节数组
+ *           【21】v4：点数4 + 格式4 + 数据19*n或21*n
+ *           【210】v4：点数4 + 格式4 + 数据24*n或28*n的纹理结构
  *           【19】点数4 + 格式4 + 数据19*n
  *           【10019】点数4 + 格式4 + log编码次数4 + 数据19*n【废弃】
  *           【20】点数4 + 格式4 + 数据20*n
@@ -645,7 +829,7 @@ int spxSplat220(void *o, void *b, int d, int e) {
  *           【2】每点含24字节的1级加2级球谐系数（点数4 + 格式4 + 数据(9+15)*n）
  *           【3】每点含21字节的3级球谐系数（点数4 + 格式4 + 数据(21)*n）
  *           【22|23】点数4 + 格式4 + 数据20或22*n
- *           【220|230】点数4 + 格式4 + 数据20或22*n的纹理结构
+ *           【220|230】点数4 + 格式4 + 数据24或28*n的纹理结构
  * @param d: 球谐系数级别（0~3）
  * @return: 0-成功，1-失败(不支持的版本)
  */
@@ -653,7 +837,11 @@ EXTERN EMSCRIPTEN_KEEPALIVE int D(void *o, void *b, int d) {
     uint32_t *ui32sInput = (uint32_t *)b;
     uint32_t bf = ui32sInput[1];
 
-    if (bf == 220)
+    if (bf == 21)
+        return spxSplat21(o, b, d);
+    else if (bf == 210)
+        return spxSplat210(o, b, d);
+    else if (bf == 220)
         return spxSplat220(o, b, d, 1);
     else if (bf == 230)
         return spxSplat220(o, b, d, 0);

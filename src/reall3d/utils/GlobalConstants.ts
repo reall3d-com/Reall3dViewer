@@ -1,7 +1,7 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-export const ViewerVersion = 'v3.2.0'; // Reall3dViewer 版本
+export const ViewerVersion = 'v3.3-dev'; // Reall3dViewer 版本
 
 export const isCloudDevice = /CloudDevice/i.test(navigator.userAgent);
 export const isMobile =
@@ -21,6 +21,11 @@ export const DecoderPath = 'https://reall3d.com/reall3dviewer/libs/draco/'; // '
 export const SpxCreaterReall3d = 0;
 /** 【spx中定义的公开格式】spx open format */
 export const SpxOpenFormat0 = 0;
+
+/** 【spx中定义的公开数据块格式】Open Block Content Format 21, basic data */
+export const SpxBlockFormatData21 = 21;
+/** 【spx中定义的公开数据块格式】Open Block Content Format 210, basic data, webp encoding */
+export const SpxBlockFormatData210 = 210;
 
 /** 【spx中定义的公开数据块格式】Open Block Content Format 22, basic data */
 export const SpxBlockFormatData22 = 22;
