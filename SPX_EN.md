@@ -1,4 +1,4 @@
-## SPX Version 3 Format Specification
+## SPX Version 4 Format Specification
 The `.spx` format is a 3DGS model format designed to be fle**X**ible, e**X**tensible, and e**X**clusive.
 
 
@@ -17,7 +17,7 @@ Fixed-length header for format identification, containing bounding box data for 
 | Byte Offset | Type      | Field Name            | Description                                                                 |
 |-------------|-----------|-----------------------|-----------------------------------------------------------------------------|
 | 0–2         | ASCII     | `*`Magic           | Fixed value `spx`                                                         |
-| 3           | uint8     | `*`Version               | Current version: `2`                                                        |
+| 3           | uint8     | `*`Version               | Current version: `4`                                                        |
 | 4–7         | uint32    | `*`Gaussian Count        | Total number of Gaussian points                                             |
 | 8–11        | float32   | `*`MinX                  | Bounding box minimum X coordinate                                           |
 | 12–15       | float32   | `*`MaxX                  | Bounding box maximum X coordinate                                           |
@@ -39,7 +39,7 @@ Fixed-length header for format identification, containing bounding box data for 
 |             |     bit 4 | Flag 5: Reserved      | Reserved |
 |             |     bit 5 | Flag 6: Reserved      | Reserved |
 |             |     bit 6 | Flag 7: Reserved      | Reserved |
-|             |     bit 7 | Flag 8: Large Scene   | Default small scene `0` |
+|             |     bit 7 | Flag 8: Reserved      | Reserved |
 | 54          | uint8     | Reserved              | Reserved                         |
 | 55          | uint8     | Reserved              | Reserved                                 |
 | 56–63       | -         | Reserved              | Reserved                                        |
@@ -78,57 +78,40 @@ he data block format encompasses both open and exclusive formats. The reserved r
 <br>
 
 
-✅  Open Format `22`, basic data (for use when more focus on encoding/decoding performance)
+✅  Open Format `21`, basic data (for use when more focus on encoding/decoding performance)
 
 
 | Byte Offset | Type      | Field Name            | Description                                                                 |
 |-------------|-----------|-----------------------|-----------------------------------------------------------------------------|
 | 0~3 | uint32 | `*`Gaussian Count | Number of Gaussians |
-| 4~7 | uint32 | `*`Format ID | `22` |
-| 8~n | bytes | `*`Data | x0...y0...z0...x1...y1...z1...x2...y2...z2...sx...sy...sz...r...g...b...a...rw...rx...ry...rz...p0...p1... |
+| 4~7 | uint32 | `*`Format ID | `21` |
+| 8~n | bytes | `*`Data | x0...y0...z0...x1...y1...z1...x2...y2...z2...sx...sy...sz...r...g...b...a...rx...ry...rz...p0...p1... |
 
 - `x,y,z` Coordinates, 24-bit precision (`x`, `y`, `z`).
 - `sx,sy,sz` Scale, 8-bit per axis (`sx`, `sy`, `sz`).
 - `r,g,b,a` Color, RGBA channels (8-bit each).
-- `rw,rx,ry,rz` Rotation, Quaternion components (8-bit each).
+- `rx,ry,rz` Rotation, 24-bit exponential map.
 - `p0,p1` Low and high bytes of palette index; omitted when no palette is used.
 
 ---
 
 
-
-✅  Open Format `23`, basic data (for large-scale scenes where more focus is on encoding/decoding performance)
-
-
-Same as format `22`, but `x,y,z` coordinates are not Log-encoded, resulting in smaller errors.
-
-
-
-
-✅  Open Format `220`, basic data (for use when more focus on compression ratio)
+✅  Open Format `210`, basic data (for use when more focus on compression ratio)
 
 
 | Byte Offset | Type      | Field Name            | Description                                                                 |
 |-------------|-----------|-----------------------|-----------------------------------------------------------------------------|
 | 0~3 | uint32 | `*`Gaussian Count | Number of Gaussians |
-| 4~7 | uint32 | `*`Format ID | `220`, webp encoding |
-| 8~n | bytes | `*`Data | length,webp([x0,y0,z0,255...]), length,webp([x1,y1,z1,255...]), length,webp([x2,y2,z2,255...]), length,webp([sx,sy,sz,255...]), length,webp([r,g,b,a...]), length,webp([r0,r1,r2,ri...], length,webp([p0,p1,0,255...]) |
+| 4~7 | uint32 | `*`Format ID | `210`, webp encoding |
+| 8~n | bytes | `*`Data | length,webp([x0,y0,z0,255...]), length,webp([x1,y1,z1,255...]), length,webp([x2,y2,z2,255...]), length,webp([sx,sy,sz,255...]), length,webp([r,g,b,a...]), length,webp([rx,ry,rz,255...], length,webp([p0,p1,0,255...]) |
 
 - `x,y,z` Coordinates, 24-bit precision.
 - `sx,sy,sz` Scale, 8-bit per axis.
 - `r,g,b,a` Color, RGBA channels (8-bit each).
-- `r0,r1,r2,ri` Rotation, Quaternion components (8-bit each), ri is the index of the maximum value + 252.
+- `rx,ry,rz` Rotation, 24-bit exponential map.
 - `p0,p1` Low and high bytes of palette index; omitted when no palette is used.
 
 ---
-
-
-
-✅  Open Format `230`, basic data (for use when more focus on compression ratio)
-
-
-Same as format `220`, but `x,y,z` coordinates are not Log-encoded, resulting in smaller errors.
-
 
 
 ✅  Open Format `8`, palettes of SH (auto-selected by strategy, no manual specification required)
@@ -162,5 +145,6 @@ Same as format `220`, but `x,y,z` coordinates are not Log-encoded, resulting in 
 
 ## Historical Version
 
+- `SPX SPEC V3` https://github.com/reall3d-com/Reall3dViewer/blob/main/spx-spec/v3/SPX_ZH.md
 - `SPX SPEC V2` https://github.com/reall3d-com/Reall3dViewer/blob/main/spx-spec/v2/SPX_EN.md
 - `SPX SPEC V1` https://github.com/reall3d-com/Reall3dViewer/blob/main/spx-spec/v1/SPX_EN.md
