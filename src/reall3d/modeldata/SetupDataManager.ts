@@ -162,7 +162,7 @@ export function setupDataManager(events: Events) {
             textWatermarkData = await fire(GetGaussianText, text, isY, isNgativeY, splatModel?.opts?.format);
             splatModel && (splatModel.textWatermarkVersion = Date.now());
         } catch (e) {
-            console.info('failed to generate watermark');
+            console.log('failed to generate watermark');
         }
     });
 
