@@ -1,7 +1,7 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-import { Matrix4, Mesh, PerspectiveCamera, Vector3 } from 'three';
+import { Matrix4, Mesh, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { Events } from '../../events/Events';
 import {
     SplatUpdatePerformanceNow,
@@ -45,8 +45,9 @@ import {
     LodDownloadAddLodMeta,
     SplatMeshSwitchDisplayMode,
     GetMeta,
-    LodDownloadManagerDispose,
     OnStartLodShown,
+    SplatUpdateIsMotion,
+    IsMotionDegrade,
 } from '../../events/EventConstants';
 import { SplatMeshOptions } from './SplatMeshOptions';
 import { ModelOptions } from '../../modeldata/ModelOptions';
@@ -57,6 +58,7 @@ import { BoundBox } from '../boundbox/BoundBox';
 import { QualityLevels, SortTypes } from '../../utils/GlobalConstants';
 import { AudioText, AudioTextOptions } from '../media/AudioText';
 import { setupAllEventsSplatMesh } from '../../scene/SetupAllEvents';
+import { Reall3dViewerOptions } from '../../viewer/Reall3dViewerOptions';
 
 /**
  * Gaussian splatting mesh
@@ -127,6 +129,7 @@ export class SplatMesh extends Mesh {
             that.onBeforeRender = () => {
                 fire(NotifyWkA09Sort);
                 fire(SplatUpdatePerformanceNow, performance.now());
+                fire(IsMotionDegrade) && checkMotion();
 
                 if (
                     that.audioText.opts.position &&
@@ -154,6 +157,29 @@ export class SplatMesh extends Mesh {
             boundBox.update(minX, minY, minZ, maxX, maxY, maxZ, show);
         });
         on(SplatSetBoundBoxVisible, (visible: boolean = true) => (boundBox.visible = visible));
+        // 运动控制
+        let lastPos = new Vector3();
+        let lastQuat = new Quaternion();
+        const POS_THRESHOLD_SQ = 0.001 * 0.001;
+        const ROT_THRESHOLD = 0.001;
+        let lastTime = 0;
+        const defaultLevel: number = (that.opts.viewerEvents?.fire(GetOptions) as Reall3dViewerOptions)?.qualityLevel || QualityLevels.Default5;
+
+        function checkMotion() {
+            const posDeltaSq = camera.position.distanceToSquared(lastPos);
+            const rotDelta = camera.quaternion.angleTo(lastQuat);
+            const now = performance.now();
+
+            const hasMotion = posDeltaSq > POS_THRESHOLD_SQ || rotDelta > ROT_THRESHOLD;
+            if (hasMotion) {
+                lastTime = now;
+                lastPos.copy(camera.position);
+                lastQuat.copy(camera.quaternion);
+            }
+            const isMotion = now - lastTime < 400;
+            fire(SplatUpdateIsMotion, isMotion);
+            fire(OnQualityLevelChanged, isMotion ? QualityLevels.L1 : defaultLevel);
+        }
     }
 
     /**

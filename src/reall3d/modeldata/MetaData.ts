@@ -155,6 +155,8 @@ export interface MetaData {
 
     /** Background color (defaults to '#000000') */
     background?: string;
+    /** Reduce rendering quality during camera movement to improve frame rat */
+    enableMotionDegrade?: boolean;
 }
 
 /**

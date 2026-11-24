@@ -246,15 +246,17 @@ export const IsFetching = i++;
 export const IsFlyMode = i++;
 /** 是否下载中 */
 export const IsLodFetching = i++;
+/** 是否运动降质 */
+export const IsMotionDegrade = i++;
 /** 是否玩家模式 */
 export const IsPlayerMode = i++;
 /** 是否第一人称玩家模式 */
 export const IsPlayerMode1 = i++;
 /** 是否第三人称玩家模式 */
 export const IsPlayerMode3 = i++;
+
 /** 是否点云模式 */
 export const IsPointcloudMode = i++;
-
 /** 是否在前方 */
 export const IsPointInFront = i++;
 /** 数据是否已下载结束并准备就绪（小场景适用） */
@@ -273,9 +275,9 @@ export const LoadCircularAudioMask = i++;
 export const LoaderModelStart = i++;
 /** 加载小场景元数据(相机初始化，标注待激活显示) */
 export const LoadSmallSceneMetaData = i++;
+
 /** 大场景添加LOD元数据 */
 export const LodDownloadAddLodMeta = i++;
-
 /** 销毁 */
 export const LodDownloadManagerDispose = i++;
 /** 创建地图相机 */
@@ -294,9 +296,9 @@ export const MapFlyToTarget = i++;
 export const MapGetSplatMesh = i++;
 /** 遍历并清空销毁场景中的所有对象 */
 export const MapSceneTraverseDispose = i++;
+
 /** 对多个SplatMesh实例的渲染顺序进行排序 */
 export const MapSortSplatMeshRenderOrder = i++;
-
 /** 按X轴平移 */
 export const MapSplatMeshMoveX = i++;
 /** 按Y轴平移 */
@@ -315,9 +317,9 @@ export const MapSplatMeshSaveModelMatrix = i++;
 export const MapSplatMeshScale = i++;
 /** 设定位置 */
 export const MapSplatMeshSetPosition = i++;
+
 /** 切换显示隐藏 */
 export const MapSplatMeshShowHide = i++;
-
 /** 标注面积 */
 export const MarkArea = i++;
 /** 标注距离 */
@@ -336,9 +338,9 @@ export const MarkUpdateVisible = i++;
 export const MetaMarkRemoveData = i++;
 /** 标注数据保存 */
 export const MetaMarkSaveData = i++;
+
 /** 保存小场景相机信息 */
 export const MetaSaveSmallSceneCameraInfo = i++;
-
 /** 保存水印 */
 export const MetaSaveWatermark = i++;
 /** 移动玩家(前后左右) */
@@ -357,9 +359,9 @@ export const NotifyWkA01BackXyz = i++;
 export const NotifyWkA01BackXyzIndex = i++;
 /** 请求层级 */
 export const NotifyWkA01CalcTargetLayer = i++;
+
 /** 通知销毁 */
 export const NotifyWkA01ReleaseSplatFile = i++;
-
 /** 通知设定 */
 export const NotifyWkA01SetTextureSize = i++;
 /** 通知就绪 */
@@ -378,9 +380,9 @@ export const OnFetching = i++;
 export const OnFetchStart = i++;
 /** 模型文件下载结束 */
 export const OnFetchStop = i++;
+
 /** 按元数据初始化标记 */
 export const OnInitMarks = i++;
-
 /** 渲染obj模型 */
 export const OnLoadAndRenderObj = i++;
 /** 渲染ply点云模型 */
@@ -399,9 +401,9 @@ export const OnSetFlyTargets = i++;
 export const OnSetWaterMark = i++;
 /** 小场景显示完成 */
 export const OnSmallSceneShowDone = i++;
+
 /** LOD全部上传完成 */
 export const OnSplatLodFullUploaded = i++;
-
 /** Lod场景首次加载显示 */
 export const OnStartLodShown = i++;
 /** 数据上传就绪的渲染数（小场景适用） */
@@ -420,9 +422,9 @@ export const OnViewerUpdate = i++;
 export const PhysicsAddMesh = i++;
 /** 添加物理glb静态刚体 */
 export const PhysicsAddStaticCollisionGlb = i++;
+
 /** 添加动态物理Mesh */
 export const PhysicsAdDynamicMesh = i++;
-
 /** 物理扫球调整相机 */
 export const PhysicsAdjustCameraByCastShape = i++;
 /** 添加静态物理Mesh */
@@ -441,9 +443,9 @@ export const PhysicsMovePlayer = i++;
 export const PhysicsRemoveMesh = i++;
 /** 播放背景音乐 */
 export const PlaytBgAudio = i++;
+
 /** 打印信息（开发调试用） */
 export const PrintInfo = i++;
-
 /** 回放缓存 */
 export const PushCacheXyzIndex = i++;
 /** 射线与点的距离 */
@@ -462,9 +464,9 @@ export const RenderMinimap = i++;
 export const RotateAt = i++;
 /** 视线轴左旋 */
 export const RotateLeft = i++;
+
 /** 视线轴右旋 */
 export const RotateRight = i++;
-
 /** 帧率循环调用 */
 export const RunLoopByFrame = i++;
 /** 定时循环调用 */
@@ -483,9 +485,9 @@ export const SetCursor = i++;
 export const SetGaussianText = i++;
 /** 纹理更新时间 */
 export const SetTexdataChangeLastTime = i++;
+
 /** 设定渲染器外部接口 */
 export const SetViewerApi = i++;
-
 /** 显示虚拟摇杆 */
 export const ShowJoystick = i++;
 /** 下载解析高斯数据 */
@@ -504,9 +506,9 @@ export const SplatMeshCycleZoom = i++;
 export const SplatMeshDispose = i++;
 /** 切换显示模式（通常仅小场景使用） */
 export const SplatMeshSwitchDisplayMode = i++;
+
 /** 更新包围盒数据 */
 export const SplatSetBoundBoxVisible = i++;
-
 /** 渲染器设定Splat点云模式 */
 export const SplatSetPointcloudMode = i++;
 /** 渲染器切换Splat显示模式 */
@@ -525,15 +527,17 @@ export const SplatUpdateBoundBox = i++;
 export const SplatUpdateCurrentLightRadius = i++;
 /** Splat更新可见半径 */
 export const SplatUpdateCurrentVisibleRadius = i++;
+
 /** Splat更新双缓冲纹理 */
 export const SplatUpdateDblTexture = i++;
-
 /** Splat更新调试效果 */
 export const SplatUpdateDebugEffect = i++;
 /** Splat更新标记 */
 export const SplatUpdateFlagValue = i++;
 /** Splat更新焦距 */
 export const SplatUpdateFocal = i++;
+/** 更新是否运动的标记 */
+export const SplatUpdateIsMotion = i++;
 /** Splat更新亮度系数 */
 export const SplatUpdateLightFactor = i++;
 /** Splat更新标记点 */
@@ -544,11 +548,11 @@ export const SplatUpdateMaxRadius = i++;
 export const SplatUpdateMinAlpha = i++;
 /** 更新最小最大像素直径限制 */
 export const SplatUpdateMinMaxPixelDiameter = i++;
+
 /** 小场景粒子效果加载模式（0，1，2） */
 export const SplatUpdateParticleMode = i++;
 /** Splat更新动作时间 */
 export const SplatUpdatePerformanceAct = i++;
-
 /** Splat更新系统时间 */
 export const SplatUpdatePerformanceNow = i++;
 /** Splat更新点云模式 */
@@ -565,11 +569,11 @@ export const SplatUpdateShDegree = i++;
 export const SplatUpdateShowWaterMark = i++;
 /** Splat更新调色板纹理就绪状态 */
 export const SplatUpdateShPalettesReady = i++;
+
 /** Splat更新调色板纹理 */
 export const SplatUpdateShPalettesTexture = i++;
 /** Splat更新索引缓冲数据 */
 export const SplatUpdateSplatIndex = i++;
-
 /** Splat更新中心高点 */
 export const SplatUpdateTopY = i++;
 /** Splat更新特效类型 */
@@ -586,11 +590,11 @@ export const SplatUpdateViewport = i++;
 export const SplatUploadTextureGpuCache = i++;
 /** 开始自动旋转 */
 export const StartAutoRotate = i++;
+
 /** 停止自动旋转 */
 export const StopAutoRotate = i++;
 /** 停止背景音乐 */
 export const StopBgAudio = i++;
-
 /** 待下载 */
 export const TodoDownloadLod = i++;
 /** 遍历销毁并清空Object3D的子对象 */
@@ -607,11 +611,11 @@ export const TweenFlyDisable = i++;
 export const TweenFlyEnable = i++;
 /** 相机飞行控制(仅一次) */
 export const TweenFlyOnce = i++;
+
 /** 按米比例尺更新全部标注 */
 export const UpdateAllMarkByMeterScale = i++;
 /** 更新加载状态（无进度条） */
 export const UpdateFetchStatus = i++;
-
 /** 更新提示目标状态 */
 export const UpdateIndicatorTargetStatus = i++;
 /** 按数据更新指定名称的标注 */
@@ -628,11 +632,11 @@ export const UploadSplatTexture = i++;
 export const Vector3ToString = i++;
 /** 渲染器检查是否需要刷新 */
 export const ViewerCheckNeedUpdate = i++;
+
 /** 渲染器销毁 */
 export const ViewerDispose = i++;
 /** 通知渲染器需要刷新 */
 export const ViewerNeedUpdate = i++;
-
 /** 更新渲染器选项的点云模式 */
 export const ViewerSetPointcloudMode = i++;
 /** 销毁 */

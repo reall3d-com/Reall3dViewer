@@ -102,6 +102,8 @@ import {
     NotifyWkA01BackSplatBuffer,
     NotifyWkA09DblTextureReady,
     NotifyWkA09SglTextureReady,
+    SplatUpdateIsMotion,
+    IsMotionDegrade,
 } from '../../events/EventConstants';
 import { SplatMeshOptions, TransitionEffects } from './SplatMeshOptions';
 import {
@@ -112,6 +114,7 @@ import {
     VarDebugEffect,
     VarFlagValue,
     VarFocal,
+    VarIsMotion,
     VarLightFactor,
     VarMarkPoint,
     VarMaxPixelDiameter,
@@ -261,6 +264,12 @@ export function setupSplatMesh(events: Events) {
             return { dataCount, totalCount, lodTargetsTotalCount, lodTargetsFileCount, maxFileSplatCount };
         };
         const { dataCount, lodTargetsFileCount, maxFileSplatCount } = await fnCounts();
+
+        on(IsMotionDegrade, () => {
+            // 默认自适应，移动端或大场景或小场景300万点以上开启运动降质
+            return meta.enableMotionDegrade === undefined ? isMobile || fire(IsBigSceneMode) || dataCount > 300_0000 : meta.enableMotionDegrade;
+        });
+
         const oTexSize = fire(ComputeTextureWidthHeight, dataCount, maxFileSplatCount, lodTargetsFileCount);
         fire(NotifyWkA01SetTextureSize, oTexSize);
         // console.log('--------oTexSize--------', dataCount, oTexSize);
@@ -571,11 +580,19 @@ export function setupSplatMesh(events: Events) {
             fire(NotifyViewerNeedUpdate);
         });
         on(SplatUpdateUseSimilarExp, (useSimilarExp: boolean = false) => {
+            if (material.uniforms[VarUseSimilarExp].value === useSimilarExp) return;
             material.uniforms[VarUseSimilarExp].value = useSimilarExp;
             material.uniformsNeedUpdate = true;
             fire(NotifyViewerNeedUpdate);
         });
+        on(SplatUpdateIsMotion, (isMotion: boolean = false) => {
+            if (material.uniforms[VarIsMotion].value === isMotion) return;
+            material.uniforms[VarIsMotion].value = isMotion;
+            material.uniformsNeedUpdate = true;
+            fire(NotifyViewerNeedUpdate);
+        });
         on(SplatUpdateParticleMode, (value: number) => {
+            if (material.uniforms[VarParticleMode].value === value) return;
             material.uniforms[VarParticleMode].value = value;
             material.uniformsNeedUpdate = true;
             fire(NotifyViewerNeedUpdate);
@@ -668,32 +685,38 @@ export function setupSplatMesh(events: Events) {
         fire(SplatMaterialDispose);
     });
 
-    on(OnQualityLevelChanged, () => {
+    let lastLevel = -1;
+    on(OnQualityLevelChanged, (downLevel = 0) => {
         if (!fire(IsSplatMeshCreated)) return;
+        if (downLevel) {
+            if (lastLevel === downLevel) return;
+            lastLevel = downLevel;
+        }
 
         const opts: SplatMeshOptions = fire(GetOptions);
         const meta: MetaData = (fire(GetSplatMesh) as SplatMesh)?.meta || {};
-        const level: number = opts.qualityLevel || QualityLevels.Default5;
+        const defaultLevel: number = opts.qualityLevel || QualityLevels.Default5;
+        const tgtLevel: number = downLevel || defaultLevel;
         const maxShDegrees = [0, 1, 2, 3, 3, 3, 3, 3, 3];
-        fire(SplatUpdateShDegree, maxShDegrees[level - 1]);
+        fire(SplatUpdateShDegree, maxShDegrees[defaultLevel - 1]);
         if (isMobile) {
             const minPixs = [4, 3, 3, 2, 1, 1, 1, 1, 1];
             const maxPixs = [128, 128, 128, 256, 256, 256, 512, 512, 512];
             const minAlphas = [7, 6, 5, 4, 4, 3, 2, 2, 2];
-            const minPix = meta.minPixelDiameter || minPixs[level - 1];
-            const maxPix = meta.maxPixelDiameter || maxPixs[level - 1];
+            const minPix = meta.minPixelDiameter || minPixs[tgtLevel - 1];
+            const maxPix = meta.maxPixelDiameter || maxPixs[tgtLevel - 1];
             fire(SplatUpdateMinMaxPixelDiameter, minPix, maxPix);
-            fire(SplatUpdateMinAlpha, meta.minAlpha || minAlphas[level - 1]);
-            fire(SplatUpdateUseSimilarExp, level < QualityLevels.L4);
+            fire(SplatUpdateMinAlpha, meta.minAlpha || minAlphas[tgtLevel - 1]);
+            fire(SplatUpdateUseSimilarExp, tgtLevel < QualityLevels.L4);
         } else {
             const minPixs = [2, 2, 2, 1, 1, 1, 1, 1, 1];
             const maxPixs = [128, 256, 256, 512, 512, 1024, 1024, 1024, 1024];
             const minAlphas = [5, 4, 3, 2, 2, 1, 1, 1, 1];
-            const minPix = meta.minPixelDiameter || minPixs[level - 1];
-            const maxPix = meta.maxPixelDiameter || maxPixs[level - 1];
+            const minPix = meta.minPixelDiameter || minPixs[tgtLevel - 1];
+            const maxPix = meta.maxPixelDiameter || maxPixs[tgtLevel - 1];
             fire(SplatUpdateMinMaxPixelDiameter, minPix, maxPix);
-            fire(SplatUpdateMinAlpha, meta.minAlpha || minAlphas[level - 1]);
-            fire(SplatUpdateUseSimilarExp, level < QualityLevels.L2);
+            fire(SplatUpdateMinAlpha, meta.minAlpha || minAlphas[tgtLevel - 1]);
+            fire(SplatUpdateUseSimilarExp, tgtLevel < QualityLevels.L2);
         }
         fire(WorkerUpdateParams);
     });
@@ -833,6 +856,7 @@ export function setupSplatMesh(events: Events) {
             [VarWaterMarkColor]: { type: 'v4', value: new Vector4(1, 1, 0, 0.5) },
             [VarShowWaterMark]: { type: 'bool', value: false },
             [VarUseSimilarExp]: { type: 'bool', value: true },
+            [VarIsMotion]: { type: 'bool', value: false },
             [VarFlagValue]: { type: 'uint', value: 1 },
             [VarActiveFlagValue]: { type: 'uint', value: 0 },
         };
