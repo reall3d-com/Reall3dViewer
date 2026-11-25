@@ -2,7 +2,7 @@
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
 import '../assets/style/style.less';
-import { Scene, AmbientLight, WebGLRenderer, Color, Matrix4, Camera, DirectionalLight, Mesh, MeshStandardMaterial } from 'three';
+import { Scene, AmbientLight, WebGLRenderer, Color, Matrix4, Camera, DirectionalLight, Mesh, MeshStandardMaterial, Clock } from 'three';
 import { DRACOLoader, GLTFLoader } from 'three/examples/jsm/Addons.js';
 import {
     GetCurrentDisplayShDegree,
@@ -211,8 +211,9 @@ export class Reall3dViewer {
         scene.add(new AmbientLight('#ffffff', 2));
         renderer.setAnimationLoop(that.update.bind(that));
 
+        const clock = new Clock();
         on(ViewerCheckNeedUpdate, () => {
-            controls.update();
+            controls.update(Math.min(clock.getDelta(), 0.1));
             !that.needUpdate && fire(IsCameraChangedNeedUpdate) && fire(ViewerNeedUpdate);
         });
         on(OnViewerBeforeUpdate, () => fire(KeyActionCheckAndExecute), true);
