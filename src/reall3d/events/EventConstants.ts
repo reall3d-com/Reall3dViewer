@@ -536,12 +536,12 @@ export const SplatUpdateDebugEffect = i++;
 export const SplatUpdateFlagValue = i++;
 /** Splat更新焦距 */
 export const SplatUpdateFocal = i++;
-/** 更新是否运动的标记 */
-export const SplatUpdateIsMotion = i++;
 /** Splat更新亮度系数 */
 export const SplatUpdateLightFactor = i++;
 /** Splat更新标记点 */
 export const SplatUpdateMarkPoint = i++;
+/** 更新片元最大半径的平方 */
+export const SplatUpdateMaxDistSq = i++;
 /** 更新包围球半径 */
 export const SplatUpdateMaxRadius = i++;
 /** 更新最低可渲染透明度(0~255) */

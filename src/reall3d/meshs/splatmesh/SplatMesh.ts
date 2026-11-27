@@ -46,7 +46,7 @@ import {
     SplatMeshSwitchDisplayMode,
     GetMeta,
     OnStartLodShown,
-    SplatUpdateIsMotion,
+    SplatUpdateMaxDistSq,
     IsMotionDegrade,
 } from '../../events/EventConstants';
 import { SplatMeshOptions } from './SplatMeshOptions';
@@ -162,22 +162,23 @@ export class SplatMesh extends Mesh {
         let lastQuat = new Quaternion();
         const POS_THRESHOLD_SQ = 0.001 * 0.001;
         const ROT_THRESHOLD = 0.001;
-        let lastTime = 0;
+        let frameCnt = 0;
         const defaultLevel: number = (that.opts.viewerEvents?.fire(GetOptions) as Reall3dViewerOptions)?.qualityLevel || QualityLevels.Default5;
 
         function checkMotion() {
             const posDeltaSq = camera.position.distanceToSquared(lastPos);
             const rotDelta = camera.quaternion.angleTo(lastQuat);
-            const now = performance.now();
 
             const hasMotion = posDeltaSq > POS_THRESHOLD_SQ || rotDelta > ROT_THRESHOLD;
             if (hasMotion) {
-                lastTime = now;
+                frameCnt++;
                 lastPos.copy(camera.position);
                 lastQuat.copy(camera.quaternion);
+            } else {
+                frameCnt = 0;
             }
-            const isMotion = now - lastTime < 400;
-            fire(SplatUpdateIsMotion, isMotion);
+            const isMotion = frameCnt > 6;
+            fire(SplatUpdateMaxDistSq, isMotion ? 2 : 4);
             fire(OnQualityLevelChanged, isMotion ? QualityLevels.L1 : defaultLevel);
         }
     }

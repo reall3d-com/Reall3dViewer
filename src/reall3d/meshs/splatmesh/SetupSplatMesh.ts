@@ -102,7 +102,7 @@ import {
     NotifyWkA01BackSplatBuffer,
     NotifyWkA09DblTextureReady,
     NotifyWkA09SglTextureReady,
-    SplatUpdateIsMotion,
+    SplatUpdateMaxDistSq,
     IsMotionDegrade,
 } from '../../events/EventConstants';
 import { SplatMeshOptions, TransitionEffects } from './SplatMeshOptions';
@@ -114,7 +114,7 @@ import {
     VarDebugEffect,
     VarFlagValue,
     VarFocal,
-    VarIsMotion,
+    VarMaxDistSq,
     VarLightFactor,
     VarMarkPoint,
     VarMaxPixelDiameter,
@@ -585,9 +585,9 @@ export function setupSplatMesh(events: Events) {
             material.uniformsNeedUpdate = true;
             fire(NotifyViewerNeedUpdate);
         });
-        on(SplatUpdateIsMotion, (isMotion: boolean = false) => {
-            if (material.uniforms[VarIsMotion].value === isMotion) return;
-            material.uniforms[VarIsMotion].value = isMotion;
+        on(SplatUpdateMaxDistSq, (value = 4) => {
+            if (material.uniforms[VarMaxDistSq].value === value) return;
+            material.uniforms[VarMaxDistSq].value = value;
             material.uniformsNeedUpdate = true;
             fire(NotifyViewerNeedUpdate);
         });
@@ -856,7 +856,7 @@ export function setupSplatMesh(events: Events) {
             [VarWaterMarkColor]: { type: 'v4', value: new Vector4(1, 1, 0, 0.5) },
             [VarShowWaterMark]: { type: 'bool', value: false },
             [VarUseSimilarExp]: { type: 'bool', value: true },
-            [VarIsMotion]: { type: 'bool', value: false },
+            [VarMaxDistSq]: { type: 'float', value: 4.0 },
             [VarFlagValue]: { type: 'uint', value: 1 },
             [VarActiveFlagValue]: { type: 'uint', value: 0 },
         };

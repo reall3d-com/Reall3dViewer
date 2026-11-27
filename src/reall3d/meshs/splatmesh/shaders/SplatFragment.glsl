@@ -4,7 +4,7 @@
 precision highp float;
 
 uniform float lightFactor;
-uniform float minAlpha;
+uniform float minAlpha, maxDistSq;
 uniform bool useSimilarExp, isMotion;
 varying vec4 vColor;
 varying vec4 vPosition;
@@ -19,18 +19,12 @@ void main() {
         discard;
     }
 
-    float r2 = dot(vPosition.xy, vPosition.xy);
-    if (isMotion) {
-        if (r2 > 2.0) {
-            discard;
-        }
-        alpha *= 1.0 - r2 / 2.0;
-    } else {
-        if (r2 > 4.0) {
-            discard;
-        }
-        alpha *= (useSimilarExp || vPosition.w < 0.0) ? exp2(-r2) : fnExp(-r2);
+    float distSq = dot(vPosition.xy, vPosition.xy);
+    if (distSq > maxDistSq) {
+        discard;
     }
+
+    alpha *= fnExp(distSq);
     if (alpha <= minAlpha) {
         discard;
     }
