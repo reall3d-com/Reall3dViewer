@@ -1,7 +1,7 @@
 // ==============================================
 // Copyright (c) 2025 reall3d.com, MIT license
 // ==============================================
-export const ViewerVersion = 'v3.3-dev'; // Reall3dViewer 版本
+export const ViewerVersion = 'v3.3.0'; // Reall3dViewer 版本
 
 export const isCloudDevice = /CloudDevice/i.test(navigator.userAgent);
 export const isMobile =
